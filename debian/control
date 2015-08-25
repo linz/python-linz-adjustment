@@ -1,0 +1,15 @@
+Source: python-linz-adjustment
+Maintainer: Chris Crook <ccrook@linz.govt.nz>
+Section: python
+X-Python-Version: >= 2.6
+Priority: optional
+Build-Depends: python-setuptools (>= 0.6b3), python-all (>= 2.6.6-3), debhelper (>= 7.4.3)
+Standards-Version: 3.9.1
+
+Package: python-linz-adjustment
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}
+Description: Python LINZ adjustment
+ Provides some base adjustment functions.
+ .
+ This package installs the library for Python 2.

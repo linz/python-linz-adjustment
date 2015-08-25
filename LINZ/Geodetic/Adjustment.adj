@@ -1,0 +1,87 @@
+# ========================================================
+# Standard adjustment parameters
+#
+# Input/output files
+
+listing_file WARK2015LT.lst
+
+# Coordinate input file (not required if can calculate all stations)
+#coordinate_file network-stn.csv
+
+# Data files.  Can be SNX, msr (dynanet format), csv. By default CSV
+# expects columns fromstn,fromhgt,tostn,hohgt,date,obstype,obsset,value,error.
+# obsset is an id for rounds of angles used to associate observations into the same
+# round  Observations with the same id must be consecutive rows in the file. The date
+# instrument and target height, and obsset values are optional
+
+data_file 50243_30M_VLBI_2015-072.msr
+#data_file 50243_7377_2015-072.msr
+data_file 50243_WARK_2015-072.msr
+data_file APS150750.SNX
+
+# Optional output files
+
+residual_csv_file wark2015lt-residuals.csv
+#output_coordinate_file 
+
+# ========================================================
+# Station constraint options
+#
+# Stations can be fixed, as well as accepted or rected
+# fix code code ...
+# accept code code ...
+# reject code code ...
+
+# Ignore missing stations in the observation files..
+
+# ignore_missing_stations yes
+
+# Calculate missing stations
+
+calculate_missing_stations yes
+
+#=============================================================
+# Adjustment model set up 
+
+# Apply a scale factor to the supplied weights for observation type
+`
+# reweight_observation_type type factor
+
+reweight_observation_type GX 2.6
+reweight_observation_type HA 0.6
+reweight_observation_type LV 1.6
+reweight_observation_type SD 0.5
+reweight_observation_type ZD 2.0
+
+
+# Definition of a local geoid model - defined by a geoid height and 
+# xi,eta.  Also optionally a range beyond which it is ignored
+# (provided to avoid applying to remote GNSS reference stations)
+
+local_geoid WARK 36.047 -7.7 -5.1 20000
+
+# Refraction correction (applied only to zenith distance obs)
+
+refraction_coefficient 0.075
+
+#====================================================================
+# Adjustment configuration
+
+convergence_tolerance 0.0001
+max_iterations 10
+
+# Adjust in terms of ENU components rather than XYZ components - 
+#
+# adjust_enu yes
+
+#=====================================================================
+# Extra output options
+
+# Verbose echoes the listing file to the screen
+verbose yes
+
+# Debug options write extra information to the listing file
+debug_observation_equations False
+debug_station_offsets False
+debug_calculate_missing_stations False
+
