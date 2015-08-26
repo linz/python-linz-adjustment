@@ -1,12 +1,20 @@
+#!/usr/bin/python
 
+# Imports to support python 3 compatibility
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import math
 from collections import namedtuple
 import numpy as np
-import math
 
-from Network import Network
-from Observation import Observation
-from Station import Station as NetworkStation
 from LINZ.Geodetic.Ellipsoid import GRS80
+
+from .Network import Network
+from .Observation import Observation
+from .Station import Station as NetworkStation
 
 class StationLocator( object ):
     '''

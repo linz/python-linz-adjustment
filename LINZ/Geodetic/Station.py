@@ -1,13 +1,17 @@
 
+# Imports to support python 3 compatibility
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import numpy as np
 import math
 from LINZ.Geodetic import Ellipsoid
 
-
 '''
 Station: module defining a station used in an adjustment
 '''
-
 
 class Station( object ):
 

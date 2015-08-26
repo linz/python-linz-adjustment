@@ -1,11 +1,18 @@
 '''
-MsrFile: Module to read observations from MSR files used by dynanet
+SinexObsFile: module to read coordinate observations from SINEX file
 '''
+
+# Imports to support python 3 compatibility
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import sys
 import os.path
 from LINZ.Geodetic.Sinex import Reader as SinexReader
-from Observation import Observation, ObservationValue
+
+from .Observation import Observation, ObservationValue
 
 def read( sinexFile, useMonument=False ):
     snx=SinexReader(sinexFile,covariance=SinexReader.COVAR_FULL)
@@ -40,7 +47,7 @@ def main():
     args=parser.parse_args()
 
     for obs in read(args.snx_file):
-        print obs
+        print(obs)
 
 if __name__ == '__main__':
     main()

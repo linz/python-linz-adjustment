@@ -1,10 +1,17 @@
+#!/usr/bin/python
 '''
 MsrFile: Module to read observations from MSR files used by dynanet
 '''
 
+# Imports to support python 3 compatibility
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import sys
 import os.path
-from Observation import Observation, ObservationValue
+from .Observation import Observation, ObservationValue
 
 typemap={
     'D':'HA',
@@ -83,15 +90,15 @@ def main():
     obsdata='fromstn tostn obsset obstype fromhgt tohgt value error'
 
     if os.path.exists(csv_file) and not overwrite:
-        print "Need -o option to overwrite existing CSV file"
+        print("Need -o option to overwrite existing CSV file")
         sys.exit()
 
     for f in msr_files:
         if not os.path.exists(f):
-            print "MSR file "+f+" does not exist"
+            print("MSR file "+f+" does not exist")
             sys.exit()
 
-    print "Writing",csv_file
+    print("Writing",csv_file)
     with open(csv_file,'wb') as csvfh:
         csvf=csv.writer(csvfh)
         csvf.writerow(obsdata.split())
@@ -125,9 +132,9 @@ def main():
 
     for typecode in sorted(counts.keys()):
         if typecode == 'HA':
-            print "{0} {1} observations in {2} sets".format(typecode,*counts[typecode])
+            print("{0} {1} observations in {2} sets".format(typecode,*counts[typecode]))
         else:
-            print "{0} {1} observations".format(typecode,*counts[typecode])
+            print("{0} {1} observations".format(typecode,*counts[typecode]))
 
 
 if __name__ == '__main__':

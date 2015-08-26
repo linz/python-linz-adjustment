@@ -1,3 +1,9 @@
+#!/usr/bin/python
+# Imports to support python 3 compatibility
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import sys
 import math
@@ -5,8 +11,9 @@ from collections import namedtuple
 import re
 import numpy as np
 from numpy import linalg
-from Network import Network
-from Observation import Observation
+
+from .Network import Network
+from .Observation import Observation
 
 '''
 Module to adjust network coordinates.  
@@ -72,7 +79,7 @@ class Options( object  ):
                     item=parts[0].lower()
                     value=parts[1] if len(parts)==2 else 'y'
                 except:
-                    print "Invalid configuration line: ",l
+                    print("Invalid configuration line: ",l)
                     continue
                 item=item.lower()
                 cfg[item]=value if item not in cfg else cfg[item]+'\n'+value
@@ -248,13 +255,13 @@ class Adjustment( object ):
         for obsfile in self.options.dataFiles:
             self.write("  {0}\n".format(obsfile))
             if obsfile.lower().endswith('.msr'):
-                import MsrFile
+                from . import MsrFile
                 reader=MsrFile.read
             elif re.search(r'\.snx(\.gz)?$',obsfile,re.I):
-                import SinexObsFile
+                from . import SinexObsFile
                 reader=SinexObsFile.read
             else:
-                import CsvObsFile
+                from . import CsvObsFile
                 reader=CsvObsFile.read
             for obs in reader(obsfile):
                 typecode=obs.obstype.code
@@ -815,7 +822,7 @@ class Adjustment( object ):
 
         # Calculate missing stations
         if options.calcMissingCoords:
-            import StationLocator
+            from . import StationLocator
             write=self.write if options.debugCalcMissingCoords else None
             if write:
                 write("\nCalculating missing station coordinates\n")
@@ -885,17 +892,17 @@ def main(adjustment_class=Adjustment):
 
     if args.create:
         if os.path.exists(args.config_file):
-            print "Config file "+args.config_file+" already exists - not creating!"
+            print("Config file "+args.config_file+" already exists - not creating!")
             sys.exit()
         import inspect
         source=inspect.getfile(adjustment_class)
         source=os.path.splitext(source)[0]+'.adj'
         if not os.path.exists(source):
-            print "Cannot find example configuration file :-("
+            print("Cannot find example configuration file :-(")
             sys.exit()
         with open(source) as sf, open(args.config_file,'w') as cf:
             cf.write(sf.read())
-            print "Example configuration file "+args.config_file+" created."
+            print("Example configuration file "+args.config_file+" created.")
             sys.exit()
 
     cfg={}

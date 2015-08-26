@@ -1,6 +1,11 @@
+# Imports to support python 3 compatibility
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
-from CsvRecord import Reader
-from Observation import Observation, ObservationValue
+from .CsvRecord import Reader
+from .Observation import Observation, ObservationValue
 
 def read( csvfile, colnames=None ):
     csvreader=Reader('observation','''
