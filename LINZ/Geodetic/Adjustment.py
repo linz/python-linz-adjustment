@@ -479,6 +479,7 @@ class Adjustment( object ):
         self.b=np.zeros((nprm,1))
         self.ssr=0.0
         self.nobs=0
+        return nprm
 
     def observationEquation( self, obs ):
         '''
@@ -823,10 +824,15 @@ class Adjustment( object ):
         # Calculate missing stations
         if options.calcMissingCoords:
             from . import StationLocator
-            write=self.write if options.debugCalcMissingCoords else None
-            if write:
+            debug=options.debugCalcMissingCoords
+            write=None
+            if debug:
+                write=self.write
                 write("\nCalculating missing station coordinates\n")
-            StationLocator.StationLocator(self.stations,self.observations,write)
+            nupdated=StationLocator.locateStations(self.stations,self.observations,write)
+            if nupdated > 0:
+                self.write("\nApproximate coordinates calculated for {0} stations\n"
+                           .format(nupdated))
 
         # Apply a geoid model
         if options.localGeoidModel is not None:
@@ -853,8 +859,8 @@ class Adjustment( object ):
     def run( self ):
         options=self.options
 
-        nprm=self.setupParameters()
-        self.write("\nCalculating {0} parameters\n".format(nprm))
+        self.setupParameters()
+        self.write("\nCalculating {0} parameters\n".format(self.nparam))
 
         if self.options.debugObservationEquations:
            self.writeObservationEquations()

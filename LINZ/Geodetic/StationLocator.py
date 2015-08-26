@@ -199,6 +199,7 @@ class StationLocator( object ):
         if write is None:
             write=lambda x: x
         self.write=write
+        self.nupdated=0
         self.stations={}
         self.obs={}
         self.unlocated=[]
@@ -293,10 +294,17 @@ class StationLocator( object ):
         self.unlocated.remove(maxtrialstn)
 
     def updateNetwork( self ):
+        nstations=0
         for s in self.stations.values():
             if s.networkStation is None:
                 s.networkStation=NetworkStation(s.code,xyz=s.xyz)
                 self.network.addStation( s.networkStation )
+                nstations += 1
+        self.nupdated += nstations
+
+def locateStations( network, observations, write=None ):
+    locator=StationLocator(network,observations,write)
+    return locator.nupdated
 
 def main():
     import sys
