@@ -1,3 +1,9 @@
+python-linz-adjustment (1.0.1-1) trusty; urgency=medium
+
+  * Updating for Python3 compatibility
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Thu, 27 Aug 2015 11:15:08 +1200
+
 python-linz-adjustment (1.0.0-1) trusty; urgency=medium
 
   * Initial version
