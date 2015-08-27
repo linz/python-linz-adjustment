@@ -1,3 +1,9 @@
+python-linz-adjustment (1.1.2-1) trusty; urgency=medium
+
+  * Fixing options handling
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Thu, 27 Aug 2015 13:15:13 +1200
+
 python-linz-adjustment (1.1.1-1) trusty; urgency=medium
 
   * Fixing handling of verbosity and default options
