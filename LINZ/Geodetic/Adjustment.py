@@ -67,79 +67,105 @@ class Options( object  ):
         if config_file is not None:
             self.loadConfigFile( config_file )
 
-    def loadConfigFile( self, config_file ):
+    def loadConfigFile( self, config_file, write=None ):
         cfg={}
         with open(config_file) as cfgf:
             for l in cfgf:
-                l=l.strip()
-                if len(l)==0 or l.startswith('#'):
-                    continue
                 try:
-                    parts=l.split(None,1)
-                    item=parts[0].lower()
-                    value=parts[1] if len(parts)==2 else 'y'
-                except:
-                    print("Invalid configuration line: ",l)
-                    continue
-                item=item.lower()
-                cfg[item]=value if item not in cfg else cfg[item]+'\n'+value
-        self.loadConfig( cfg )
+                    l=l.strip()
+                    if len(l)==0 or l.startswith('#'):
+                        continue
+                    try:
+                        parts=l.split(None,1)
+                        item=parts[0].lower()
+                        value=parts[1] if len(parts)==2 else 'y'
+                    except:
+                        raise RuntimeError("Invalid configuration line: ",l)
+                    self.set(item,value)
+                    item=item.lower()
+                    cfg[item]=value if item not in cfg else cfg[item]+'\n'+value
+                except Exception as ex:
+                    if write is not None:
+                        write(ex.message)
+                    else:
+                        raise
 
-    def getbool(self,config,param,current): 
-        if param not in config:
-            return current
-        return 'yes'.startswith((config.get(param) or 'yes').lower())
+    def getbool(self,value):
+        return 'yes'.startswith(value.lower())
 
-    def loadConfig( self, cfg ):
+
+    def set( self, item, value ):
         # File names
-        self.listingFile=cfg.get('listing_file',None) or self.listingFile
-        self.stationFile=cfg.get('coordinate_file',None) or self.stationFile
-        self.dataFiles.extend((df for df in cfg.get('data_file','').split("\n") if len(df) > 0))
-        self.outputStationFile=cfg.get('output_coordinate_file',None) or self.outputStationFile
-        self.outputResidualFile=cfg.get('residual_csv_file',None) or self.outputResidualFile
-        # Station selection
+        item=item.lower()
+        value=value.strip()
+        print(item,":",value)
+        if item == 'listing_file':
+            self.listingFile=value
+        elif item == 'coordinate_file':
+            self.stationFile=value
+        elif item == 'data_file':
+            self.dataFiles.append(value)
+        elif item == 'output_coordinate_file':
+            self.outputStationFile=value
+        elif item == 'residual_csv_file':
+            self.outputResidualFile=value
 
-        self.addFixedStations(cfg.get('fix','').split())
-        self.addAcceptStations(cfg.get('accept','').split())
-        self.addRejectStations(cfg.get('reject','').split())
-        self.ignoreMissingStations=self.getbool(cfg,'ignore_missing_stations',self.ignoreMissingStations)
-        self.calcMissingCoords=self.getbool(cfg,'calculate_missing_stations',self.calcMissingCoords)
-        geoidModel=cfg.get('local_geoid','')
-        if geoidModel != '':
+        # Station selection
+        elif item == 'fix':
+            self.addFixedStations(value.split())
+        elif item == 'accept':
+            self.addAcceptStations(value.split())
+        elif item == 'reject':
+            self.addRejectStations(value.split())
+        elif item == 'ignore_missing_stations':
+            self.ignoreMissingStations=self.getbool(value)
+        elif item == 'calculate_missing_stations':
+            self.calcMissingCoords=self.getbool(value)
+
+        # Geoid model
+        elif item == 'local_geoid':
             try:
-                gparts=geoidModel.split()
+                gparts=value.split()
                 code=gparts.pop(0)
                 geoidHeight,xi,eta=(float(v) for v in gparts[0:3])
                 range=float(gparts[4]) if len(gparts)==5 else None
             except:
-                raise RuntimeError("Invalid local_geoid: "+geoidModel)
+                raise RuntimeError("Invalid local_geoid: "+value)
             self.localGeoidModel={'code':code,'height':geoidHeight,'xi':xi,'eta':eta, 'range':range}
 
         # Observation options
-        for reweight in cfg.get('reweight_observation_type','').split('\n'):
-            reweight=reweight.strip()
-            if reweight == '':
-                continue
-            match=re.match(r'([a-z]{2})\s+(\d+(?:\.\d+)?)$',reweight,re.I)
-            if not match:
-                raise RuntimeError('Invalid reweight_observation_type option: '+reweight)
-            typecode=match.group(1).upper()
-            factor=float(match.group(2))
-            self.reweightObsType[typecode]=factor
+        elif item == 'reweight_observation_type':
+            if value != '':
+                match=re.match(r'([a-z]{2})\s+(\d+(?:\.\d+)?)$',value,re.I)
+                if not match:
+                    raise RuntimeError('Invalid reweight_observation_type option: '+value)
+                typecode=match.group(1).upper()
+                factor=float(match.group(2))
+                self.reweightObsType[typecode]=factor
 
         # Adjustment options
-        self.maxIterations=10
-        self.convergenceTolerance=float(cfg.get('convergence_tolerance',self.convergenceTolerance))
-        self.maxIterations=int(cfg.get('max_iterations',self.maxIterations))
-        self.adjustENU=self.getbool(cfg,'adjust_enu',self.adjustENU)
-        self.refractionCoefficient=float(cfg.get('refraction_coefficient',self.refractionCoefficient))
-        # Output options
-        self.verbose=self.getbool(cfg,'verbose',self.verbose)
-        # Debug options
-        self.debugObservationEquations=self.getbool(cfg,'debug_observation_equations',self.debugObservationEquations)
-        self.debugStationOffsets=self.getbool(cfg,'debug_station_offsets',self.debugStationOffsets)
-        self.debugCalcMissingCoords=self.getbool(cfg,'debug_calculate_missing_stations',self.debugCalcMissingCoords)
+        elif item == 'convergence_tolerance':
+            self.convergenceTolerance=float(value)
+        elif item == 'max_iterations':
+            self.maxIterations=int(value)
+        elif item == 'adjust_enu':
+            self.adjustENU=self.getbool(value)
+        elif item == 'refraction_coefficient':
+            self.refractionCoefficient=float(value)
 
+        # Output options
+        elif item == 'verbose':
+            self.verbose=self.getbool(value)
+
+        # Debug options
+        elif item == 'debug_observation_equations':
+            self.debugObservationEquations=self.getbool(value)
+        elif item == 'debug_station_offsets':
+            self.debugStationOffsets=self.getbool(value)
+        elif item == 'debug_calculate_missing_stations':
+            self.debugCalcMissingCoords=self.getbool(value)
+        else:
+            raise RuntimeError('Unrecognized configuration item: '+item+': '+value)
 
     def addFixedStations( self, codelist ):
         '''
@@ -205,7 +231,6 @@ class Adjustment( object ):
                  observations=[], 
                  options=Options(), 
                  config_file=None,
-                 config=None,
                  output_file=None ):
 
         self.stations=stations
@@ -213,10 +238,7 @@ class Adjustment( object ):
 
         self.options=options
         if config_file is not None:
-            options.loadConfigFile( config_file )
-        if config is not None:
-            options.loadConfig( config )
-        
+            options.loadConfigFile( config_file, sys.stderr.write )
         if output_file is None:
             output_file = options.listingFile
         if isinstance(output_file,basestring):
@@ -911,13 +933,13 @@ def main(adjustment_class=Adjustment):
             print("Example configuration file "+args.config_file+" created.")
             sys.exit()
 
-    cfg={}
+    options=Options()
     if args.verbose:
-        cfg['verbose']='yes'
+        options.set('verbose','yes')
 
     # Set up and run the adjustment
 
-    adj=adjustment_class(config_file=args.config_file,output_file=args.output_file,config=cfg)
+    adj=adjustment_class(config_file=args.config_file,output_file=args.output_file,options=options)
     adj.setup()
     adj.writeObservationSummary()
     adj.run()
