@@ -229,16 +229,19 @@ class Adjustment( object ):
     def __init__( self, 
                  stations=Network(), 
                  observations=[], 
-                 options=Options(), 
+                 options=None,
                  config_file=None,
-                 output_file=None ):
+                 output_file=None,
+                 verbose=False):
 
         self.stations=stations
         self.observations=observations
 
-        self.options=options
+        self.options=options or self.defaultOptions()
         if config_file is not None:
             options.loadConfigFile( config_file, sys.stderr.write )
+        if verbose:
+            options.set('verbose','yes')
         if output_file is None:
             output_file = options.listingFile
         if isinstance(output_file,basestring):
@@ -247,6 +250,9 @@ class Adjustment( object ):
         self.output=output_file
         self.parameters=[]
         self.solved=0
+
+    def defaultOptions():
+        return Options()
 
     def write( self, message, debug=False ):
         if self.output is not None:
@@ -933,13 +939,9 @@ def main(adjustment_class=Adjustment):
             print("Example configuration file "+args.config_file+" created.")
             sys.exit()
 
-    options=Options()
-    if args.verbose:
-        options.set('verbose','yes')
-
     # Set up and run the adjustment
 
-    adj=adjustment_class(config_file=args.config_file,output_file=args.output_file,options=options)
+    adj=adjustment_class(config_file=args.config_file,output_file=args.output_file,verbose=args.verbose)
     adj.setup()
     adj.writeObservationSummary()
     adj.run()
