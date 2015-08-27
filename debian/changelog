@@ -1,3 +1,9 @@
+python-linz-adjustment (1.1.1-1) trusty; urgency=medium
+
+  * Fixing handling of verbosity and default options
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Thu, 27 Aug 2015 13:07:50 +1200
+
 python-linz-adjustment (1.1.0-1) trusty; urgency=medium
 
   * Improving reporting of approximate station locations
