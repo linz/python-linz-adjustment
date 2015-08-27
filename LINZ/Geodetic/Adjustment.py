@@ -98,7 +98,6 @@ class Options( object  ):
         # File names
         item=item.lower()
         value=value.strip()
-        print(item,":",value)
         if item == 'listing_file':
             self.listingFile=value
         elif item == 'coordinate_file':
@@ -237,7 +236,7 @@ class Adjustment( object ):
         self.stations=stations
         self.observations=observations
 
-        self.options=options or self.defaultOptions()
+        options=options or self.defaultOptions()
         if config_file is not None:
             options.loadConfigFile( config_file, sys.stderr.write )
         if verbose:
@@ -247,6 +246,7 @@ class Adjustment( object ):
         if isinstance(output_file,basestring):
             output_file=open(output_file,"w")
 
+        self.options=options
         self.output=output_file
         self.parameters=[]
         self.solved=0
