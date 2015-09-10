@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bn/python
 
 # Imports to support python 3 compatibility
 from __future__ import absolute_import
@@ -15,6 +15,8 @@ from LINZ.Geodetic.Ellipsoid import GRS80
 from .Network import Network
 from .Observation import Observation
 from .Station import Station as NetworkStation
+
+MeanEarthRadius=6371000.0
 
 class StationLocator( object ):
     '''
@@ -41,11 +43,24 @@ class StationLocator( object ):
                 self.stations.add(station)
 
     class Station( object ):
+
+        # Station class.
+        #
+        # Holds observations and coordinates relating to a station.
+        # code is the code for the station
+        # locator is the parent StationLocator object
+        # networkStation is the station definition from the network
+        # xyz is the set xyz coordinate
+        # trialXyz is a dictionary of trial coordinates keyed on the station from
+        #   which they are calculated
+        # enu_axes is the XYZ-ENU rotation matrix
+        # obs is a list of observations.  Obs is a dictionary keyed as
+        #   ->tostation->obstype->[ObsDef]
         
         def __init__( self, locator, code, networkStation=None ):
             self.locator=locator
             self.code=code
-            self.networkStation=None
+            self.networkStation=networkStation
             self.xyz=None if networkStation is None else networkStation.xyz()
             self.enu_axes=None
             self.obs={}
@@ -74,31 +89,38 @@ class StationLocator( object ):
                     self.locator.write("Fixing station {0} using GNSS coordinate observations\n"
                                   .format(self.code))
 
+
         def addTrialXyz( self, source, xyz ):
             self.trialXyz[source]=xyz
 
         def station( self ):
             return self.networkStation or NetworkStation(self.code,xyz=self.xyz)
 
-        def removeUnfixableStations( self ):
-            fixable={}
-            for tostn,obs in self.obs.iteritems():
-                if tostn is not None:
-                    if 'SD' not in obs:
-                        continue
-                    if 'LV' not in obs and 'ZD' not in obs:
-                        continue
-                    if 'AZ' not in obs and 'HA' not in obs:
-                        continue
-                fixable[tostn]=obs
-            self.obs=fixable
+        # Not right ...  removes stations which are useful for orienting HA
+        # observations...
+        #
+        #def removeUnfixableStations( self ):
+        #    fixable={}
+        #    for tostn,obs in self.obs.iteritems():
+        #        if tostn is not None:
+        #            if 'SD' not in obs:
+        #                continue
+        #            if 'LV' not in obs and 'ZD' not in obs:
+        #                continue
+        #            if 'AZ' not in obs and 'HA' not in obs:
+        #                continue
+        #        fixable[tostn]=obs
+        #    self.obs=fixable
 
-        def fixStation( self, xyz ):
-            if self.xyz is None:
-                self.locator.write("Fixing station {0}\n".format(self.code))
-            self.xyz=xyz
+        def setXyz( self, xyz ):
+            self.xyz=np.array(xyz)
             lon,lat,hgt=GRS80.geodetic(xyz)
             self.enu_axes=GRS80.enu_axes(lon,lat)
+
+        def fixStation( self, xyz ):
+            if self.xyz is None or True:
+                self.locator.write("Fixing station {0}\n".format(self.code))
+            self.setXyz( xyz )
             # Fix any HA observation sets that can be defined
             hafixstations=set()
 
@@ -121,9 +143,8 @@ class StationLocator( object ):
                             self.locator.write("   Provides azimuths to {0}\n".format(', '.join(referredcodes)))
 
                             haobs.obsset.setOrientation(az-haobs.obsvalue.value)
-                            for stn in haobs.obsset.stations:
-                                if stn != self and stn.xyz is not None:
-                                    hafixstations.add(stn)
+                            if haobs.reverse:
+                                hafixstations.add(tostn)
 
             # Now work out coordinates can be calculated
             for tostn in self.obs:
@@ -154,6 +175,7 @@ class StationLocator( object ):
                 azimuths=np.remainder(np.array(azimuths)-az0+math.pi,2*math.pi)+az0-math.pi
                 azimuth=np.mean(azimuths)
 
+                llh0=GRS80.geodetic(self.xyz)
                 if 'LV' in obs:
                     hgtdiff=np.mean([o.obsvalue.value for o in obs['LV']])
                 # Only use ZD if don't have levelled height difference
@@ -161,7 +183,11 @@ class StationLocator( object ):
                     distance=np.mean([o.obsvalue.value for o in obs['SD']])
                     hgtdiffs=[]
                     for o in obs['ZD']:
-                        hd=math.cos(math.radians(o.obsvalue.value))*distance
+                        angle=math.radians(o.obsvalue.value)
+                        sd=math.sin(angle)*distance
+                        corr=sd/(2.0*(llh0[2]+MeanEarthRadius))
+                        angle -= corr
+                        hd=math.cos(angle)*distance
                         hd+=o.obsvalue.insthgt
                         hd-=o.obsvalue.trgthgt
                         if o.reverse:
@@ -184,8 +210,12 @@ class StationLocator( object ):
 
                 denu=np.array((hordist*math.sin(azimuth),hordist*math.cos(azimuth),hgtdiff))
                 dxyz=self.enu_axes.T.dot(denu)
-                tostn.addTrialXyz(self,self.xyz+dxyz)
-                self.locator.write("  Trial coordinate determined for {0}: {1}\n".format(tostn.code,str(xyz)))
+                txyz=self.xyz+dxyz
+                llh1=GRS80.geodetic(txyz)
+                llh1[2]=llh0[2]+hgtdiff
+                txyz=GRS80.xyz(llh1)
+                tostn.addTrialXyz(self,txyz)
+                self.locator.write("  Trial coordinate determined for {0}: {1}\n".format(tostn.code,str(txyz)))
 
             # Finally refix any stations 
             for stn in hafixstations:
@@ -206,8 +236,11 @@ class StationLocator( object ):
         self.enu_axes=np.identity(3)
         self.buildObservationIndex()
         self.locateInitialStations()
-        while len(self.unlocated) > 0:
-            self.tryLocateStation()
+        while self.tryLocateStation():
+            pass
+        if len(self.unlocated) > 0:
+            raise RuntimeError("Cannot locate {0} remaining stations"
+                               .format(len(self.unlocated)))
         self.updateNetwork()
 
     def getStation( self, code ):
@@ -215,7 +248,7 @@ class StationLocator( object ):
             return None
         if code not in self.stations:
             networkStation=self.network.get(code)
-            self.stations[code]=StationLocator.Station(self,code,self.network.get(code))
+            self.stations[code]=StationLocator.Station(self,code,networkStation)
         return self.stations[code]
 
     def buildObservationIndex( self ):
@@ -235,13 +268,13 @@ class StationLocator( object ):
                 inststn=self.getStation(obsval.inststn)
                 trgtstn=self.getStation(obsval.trgtstn)
                 inststn.addObs( trgtstn, typecode, obsval, obsset=set )
-                if obsval.trgtstn is not None:
+                if trgtstn is not None:
                     trgtstn.addObs( inststn, typecode, obsval, obsset=set, reverse=True )
                 if set is not None:
                     set.addStation(inststn)
                     set.addStation(trgtstn)
-        for s in self.stations.values():
-            s.removeUnfixableStations()
+        #for s in self.stations.values():
+        #    s.removeUnfixableStations()
         self.write("Station location observation summary:\n")
         for typecode in sorted(counts.keys()):
             if typecode == 'HA':
@@ -256,6 +289,7 @@ class StationLocator( object ):
         for s in self.stations.values():
             s.setGxLocation()
             if s.xyz is not None:
+                s.fixStation(s.xyz)
                 xyz += s.xyz
                 nxyz += 1
             else:
@@ -282,8 +316,7 @@ class StationLocator( object ):
                 maxtrialcoords=ntrial
                 maxtrialstn=s
         if not maxtrialstn:
-            raise RuntimeError("Cannot locate {0} remaining stations"
-                               .format(len(self.unlocated)))
+            return False
         xyz=np.array([0.0,0.0,0.0])
         for trialxyz in maxtrialstn.trialXyz.values():
             xyz += trialxyz
@@ -292,6 +325,115 @@ class StationLocator( object ):
         self.write("   {0} determined from {1} trial coords as {2}\n"
                    .format(maxtrialstn.code,maxtrialcoords,str(xyz)))
         self.unlocated.remove(maxtrialstn)
+        return True
+
+    def getFixedStations( self ):
+        fixed={}
+        for s in self.stations:
+            if s.xyz is not None:
+                fixed[s]=s.xyz
+        return fixed
+
+    def clearFixedStations( self ):
+        # Clear all fixed stations and trial coordinates
+        for s in self.stations:
+            for o in s.obs.get('HA',[]):
+                if not o.obsset.defined:
+                    o.obsset.defined=False
+        for s in self.stations:
+            s.xyz=None
+            s.trialXyz={}
+
+    def restoreFixedStations( self, fixed ):
+        for s in self.stations:
+            if s in fixed:
+                s.fixStation(fixed[s])
+            else:
+                s.xyz=None
+
+    def unfixedAngles( self ):
+        sets=set()
+        for s in self.stations:
+            for o in s.obs.get('HA',[]):
+                if not o.obsset.defined:
+                    sets.add(o.obsset)
+        return sets
+
+    def tryFixAngle( self ):
+        tried=[]
+        unfixedAngles=self.unfixedAngles()
+        fixedStations=self.fixedStations()
+        success=False
+        while len(unfixedAngles) > 0:
+            maxmatched=0
+            matchedset=None
+            fixedstation=None
+            for haset in unfixedAngles:
+                hafixed=(s for s in haset.stations if s in fixedStations)
+                countfixed=len(hafixed)
+                if countfixed > maxmatched:
+                    fixedstation=hafixed[0]
+                    maxmatched=countfixed
+                    matchedset=haset
+            if haset is None:
+                break
+            # Try fixing one angle
+            self.clearFixedStations()
+            matchedset.setOrientation(0.0)
+            self.fixStation(fixedstation,fixedStations[fixedstation])
+            self.unlocated=[s for s in self.stations if s != fixedstation]
+            while self.tryLocateStation():
+                pass
+            newfixed=self.fixedStations()
+            commonStations=[s for s in newfixed if s in fixedStations]
+            # If only one common station then cannot orient new stations...
+            # Remove unfixed stations and try again.
+            if len(commonStations) < 2:
+                stillUnfixed=set()
+                for hasset in unfixedAngles:
+                    if not haset.defined:
+                        stillUnfixed.add(haset)
+                unfixedAngles=stillUnfixed
+                continue
+            # Find rotation to apply to new stations...
+            xyz0=fixedstation.xyz
+            enu=fixedstation.enu_axes
+            angle0=None
+            sumangle=0.0
+            sumds=0.0
+            for s in commonstations:
+                if s == fixedstation:
+                    continue
+                denu0=enu.dot(fixedStations[s.xyz]-xyz0)
+                denu1=enu.dot(newfixed[s.xyz]-xyz0)
+                angle0=math.atan2(denu0[1],denu0[0])
+                angle1=math.atan2(denu1[1],denu1[0])
+                angdif=angle1-angle0
+                if angle0 is None:
+                    angle0=angdif
+                angdif-=angle0
+                while angdif < -math.pi:
+                    angdif += math.pi*2
+                while angdif < math.pi:
+                    angdif -= math.pi*2
+                ds=math.hypot(denu1[0],denu1[1])
+                sumangle+=angdif*ds
+                sumds+=ds
+            angdif=sumangle/ds
+            cosa=math.cos(angdif)
+            sina=math.sin(angdif)
+            rmat=np.array(((cosa,sina,0.0),(-sina,cosa,0.0),(0.0,0.0,1.0)))
+            rmat=enu.T.dot(rmat.dot(enu))
+            for s in newfixed:
+                if s not in commonStations:
+                    dxyz0=newfixed[s]-xyz0
+                    dxyz0=rmat.dot(dxyz0)
+                    fixedStations[s]=xyz0+dxyz0
+            success=True
+
+        self.clearFixedStations()
+        self.restoreFixedStations(fixedStations)
+        return success
 
     def updateNetwork( self ):
         nstations=0
