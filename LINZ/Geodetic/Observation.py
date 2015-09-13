@@ -18,6 +18,25 @@ class ObservationValue( object ):
         self.insthgt=insthgt
         self.trgthgt=trgthgt
 
+    def __str__( self ):
+        if isinstance(self.value,float):
+            strobs="{0:.4f}".format(self.value)
+        else:
+            strobs="["+",".join(["{0:.5f}".format(x) for x in self.value])+"]"
+
+        if self.stderr is None:
+            strerr='None'
+        elif isinstance(self.stderr,float):
+            strerr="{0:.4f}".format(self.stderr)
+        else:
+            strerr="["+",".join(["{0:.5f}".format(x) for x in self.stderr])+"]"
+
+        strvalue="{0},{1},{2:.4f},{3:.4f},{4},{5}".format(
+            self.inststn,self.trgtstn,
+            self.insthgt,self.trgthgt,
+            strobs,strerr)
+        return strvalue
+
 class Observation( object ):
 
     '''
@@ -59,7 +78,12 @@ class Observation( object ):
 
     def addObservation( self, obs ):
         self.obsvalues.append(obs)
+        return self
 
     def setCovariance( self, covar ):
         self.covariance=covar
+        return self
+
+    def __str__( self ):
+        return "".join([self.obstype.code+","+str(o)+"\n" for o in self.obsvalues])
 

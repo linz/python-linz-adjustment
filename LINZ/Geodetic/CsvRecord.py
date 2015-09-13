@@ -68,7 +68,22 @@ class Reader( object ):
         '''
         self._fields.append(Reader.Field(field,parsefunc,optional))
 
-    def readCsv( self, filename, colnames=None ):
+
+    def recordType( self ):
+        if len(self._fields) < 0:
+            raise RuntimeError("Cannot read CSV file without defining fields first")
+        return namedtuple(self._recordName, [f.name for f in self._fields])
+
+    def fields( self ):
+        return self._fields
+
+    def open( self, source, colnames={}, filename=None ):
+        '''
+        Returns an open Reader.File object.  
+        '''
+        return Reader.File( self, source, colnames, filename )
+
+    def readCsv( self, source, colnames={}, filename=None ):
         '''
         Reads a CSV file and yield a record for each row 
         corresponding the defined fields.  Assumes the first
@@ -79,16 +94,29 @@ class Reader( object ):
           { fieldname: colname, ... }
         '''
 
-        if len(self._fields) < 0:
-            raise RuntimeError("Cannot read CSV file without defining fields first")
+        for record in self.open(source,colnames,filename).records():
+            yield record
 
-        recordtype=namedtuple(self._recordName, [f.name for f in self._fields])
-
-        with open(filename,'rb') as csvfh:
-            csvf=csv.reader(csvfh)
-            header=[f.lower() for f in csvf.next()]
+    class File( object ):
+        '''
+        Reader.File opens a file using the reader record definition
+        in readiness for extracting records.
+        '''
+    
+        def __init__( self, csvrecord, source, colnames={}, filename=None ):
+            if isinstance(source,basestring):
+                if filename is None:
+                    filename=source
+                source=open(source,'rb')
+            if filename is None:
+                filename='input'
+            self._filename=filename
+            self._csvf=csv.reader(source)
+            header=[f.lower() for f in self._csvf.next()]
             colnos=[];
-            colnames=colnames or {}
+            self._fields=csvrecord.fields()
+            if colnames is None:
+                colnames={}
             for i,f in enumerate(self._fields):
                 fname=colnames(f.name) if f.name in colnames else f.name
                 colno=-1
@@ -98,11 +126,28 @@ class Reader( object ):
                     if not f.optional:
                         raise RuntimeError(filename+' is missing required field '+fname)
                 colnos.append(colno)
+            self._header=header
+            self._colnos=colnos
+            self._recordtype=csvrecord.recordType()
+
+        def filename( self ):
+            return self._filename
+
+        def fieldsDefined( self ):
+            '''
+            Returns a list of record fields actually defined in the file
+            '''
+            return [f.name for c,f in zip(self._colnos,self._fields) if c >= 0]
+
+        def records( self ):
+            '''
+            Iterator yielding each record from the file in turn
+            '''
             recordno=0
-            for row in csvf:
+            for row in self._csvf:
                 recordno += 1
                 record=[]
-                for c,f in zip(colnos,self._fields):
+                for c,f in zip(self._colnos,self._fields):
                     if c < 0:
                         record.append(None)
                     else:
@@ -115,13 +160,13 @@ class Reader( object ):
                                     value=f.parsefunc(value)
                                 except:
                                     raise ValueError("Invalid value \""+row[c]+"\" for "+
-                                                     header[c]+" in "+filename+
+                                                     self._header[c]+" in "+self._filename+
                                                      " at record "+str(recordno))
                         elif value == '' and f.optional:
                             value=None
                         if value is None and not f.optional:
                             raise ValueError("Missing value for "+
-                                header[c]+" in "+filename+
+                                self._header[c]+" in "+filename+
                                 " at record "+str(recordno))
                         record.append(value)
-                yield recordtype(*record)
+                yield self._recordtype(*record)
