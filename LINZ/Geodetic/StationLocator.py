@@ -231,13 +231,20 @@ class StationLocator( object ):
         self.write=write
         self.nupdated=0
         self.stations={}
+        self.sets=[]
         self.obs={}
         self.unlocated=[]
         self.enu_axes=np.identity(3)
         self.buildObservationIndex()
         self.locateInitialStations()
-        while self.tryLocateStation():
-            pass
+        nunlocated=len( self.unlocated )
+        while self.tryLocateStation() or self.tryFixAngle():
+            # Should not be true - check to avoid infinite loop...
+            if len(self.unlocated) >= nunlocated:
+                raise RuntimeError("tryLocateStation or tryFixAngle failed to fix stations")
+            nunlocated=len( self.unlocated )
+            if nunlocated == 0:
+                break
         if len(self.unlocated) > 0:
             raise RuntimeError("Cannot locate {0} remaining stations"
                                .format(len(self.unlocated)))
@@ -262,6 +269,7 @@ class StationLocator( object ):
             if typecode == 'HA':
                 setid+=1
                 set=StationLocator.AngleSet(setid)
+                self.sets.append(set)
             counts[typecode][0] += len(obs.obsvalues)
             counts[typecode][1] += 1
             for obsval in obs.obsvalues:
@@ -321,124 +329,135 @@ class StationLocator( object ):
         for trialxyz in maxtrialstn.trialXyz.values():
             xyz += trialxyz
         xyz /= maxtrialcoords
-        maxtrialstn.fixStation(xyz)
-        self.write("   {0} determined from {1} trial coords as {2}\n"
+        self.write("Determined {0} from {1} trial coords as {2}\n"
                    .format(maxtrialstn.code,maxtrialcoords,str(xyz)))
+        maxtrialstn.fixStation(xyz)
         self.unlocated.remove(maxtrialstn)
         return True
 
     def getFixedStations( self ):
         fixed={}
-        for s in self.stations:
+        for s in self.stations.values():
             if s.xyz is not None:
                 fixed[s]=s.xyz
         return fixed
 
     def clearFixedStations( self ):
         # Clear all fixed stations and trial coordinates
-        for s in self.stations:
-            for o in s.obs.get('HA',[]):
-                if not o.obsset.defined:
-                    o.obsset.defined=False
-        for s in self.stations:
+        for obsset in self.sets:
+            obsset.defined=False
+        for s in self.stations.values():
             s.xyz=None
             s.trialXyz={}
 
     def restoreFixedStations( self, fixed ):
-        for s in self.stations:
+        for s in self.stations.values():
             if s in fixed:
                 s.fixStation(fixed[s])
             else:
                 s.xyz=None
 
     def unfixedAngles( self ):
-        sets=set()
-        for s in self.stations:
-            for o in s.obs.get('HA',[]):
-                if not o.obsset.defined:
-                    sets.add(o.obsset)
-        return sets
+        return [s for s in self.sets if not s.defined]
 
     def tryFixAngle( self ):
         tried=[]
         unfixedAngles=self.unfixedAngles()
-        fixedStations=self.fixedStations()
+        fixedStations=self.getFixedStations()
         success=False
         while len(unfixedAngles) > 0:
             maxmatched=0
             matchedset=None
             fixedstation=None
             for haset in unfixedAngles:
-                hafixed=(s for s in haset.stations if s in fixedStations)
+                hafixed=[s for s in haset.stations if s in fixedStations]
                 countfixed=len(hafixed)
                 if countfixed > maxmatched:
                     fixedstation=hafixed[0]
                     maxmatched=countfixed
                     matchedset=haset
-            if haset is None:
+            if matchedset is None:
                 break
             # Try fixing one angle
             self.clearFixedStations()
             matchedset.setOrientation(0.0)
-            self.fixStation(fixedstation,fixedStations[fixedstation])
-            self.unlocated=[s for s in self.stations if s != fixedstation]
+            fixedstation.fixStation(fixedStations[fixedstation])
+            self.unlocated=[s for s in self.stations.values() if s != fixedstation]
+            nunlocated=len(self.unlocated)
             while self.tryLocateStation():
-                pass
-            newfixed=self.fixedStations()
+                if len(self.unlocated) >= nunlocated:
+                    raise RuntimeError("Failed locate station in tryFixAngle")
+                nunlocated=len(self.unlocated)
+                if nunlocated == 0:
+                    break
+            newfixed=self.getFixedStations()
             commonStations=[s for s in newfixed if s in fixedStations]
             # If only one common station then cannot orient new stations...
             # Remove unfixed stations and try again.
             if len(commonStations) < 2:
+                len0=len(unfixedAngles)
                 stillUnfixed=set()
                 for hasset in unfixedAngles:
                     if not haset.defined:
                         stillUnfixed.add(haset)
                 unfixedAngles=stillUnfixed
+                len1=len(unfixedAngles)
+                if len1 >= len0:
+                    raise RuntimeError("Failed to remove unfixedAngles in tryFixAngle")
                 continue
             # Find rotation to apply to new stations...
             xyz0=fixedstation.xyz
             enu=fixedstation.enu_axes
-            angle0=None
+            angleref=None
             sumangle=0.0
             sumds=0.0
-            for s in commonstations:
+            for s in commonStations:
                 if s == fixedstation:
                     continue
-                denu0=enu.dot(fixedStations[s.xyz]-xyz0)
-                denu1=enu.dot(newfixed[s.xyz]-xyz0)
-                angle0=math.atan2(denu0[1],denu0[0])
-                angle1=math.atan2(denu1[1],denu1[0])
+                denu0=enu.dot(fixedStations[s]-xyz0)
+                denu1=enu.dot(newfixed[s]-xyz0)
+                angle0=math.atan2(denu0[0],denu0[1])
+                angle1=math.atan2(denu1[0],denu1[1])
                 angdif=angle1-angle0
-                if angle0 is None:
-                    angle0=angdif
-                angdif-=angle0
+                if angleref is None:
+                    angleref=angdif
+                angdif-=angleref
                 while angdif < -math.pi:
                     angdif += math.pi*2
-                while angdif < math.pi:
+                while angdif > math.pi:
                     angdif -= math.pi*2
+                angdif+=angleref
                 ds=math.hypot(denu1[0],denu1[1])
                 sumangle+=angdif*ds
                 sumds+=ds
-            angdif=sumangle/ds
-            cosa=math.cos(angdif)
-            sina=math.sin(angdif)
-            rmat=np.array(((cosa,sina,0.0),(-sina,cosa,0.0),(0.0,0.0,1.0)))
-            rmat=enu.T.dot(rmat.dot(enu))
-            for s in newfixed:
-                if s not in commonStations:
-                    dxyz0=newfixed[s]-xyz0
-                    dxyz0=rmat.dot(dxyz0)
-                    fixedStations[s]=xyz0+dxyz0
-            success=True
+            angdif=sumangle/sumds
+            # Now restore fixed stations, reset the fixed angle
+            # and calculate stations
+            self.clearFixedStations()
+            matchedset.setOrientation(math.degrees(-angdif))
+            self.restoreFixedStations(fixedStations)
+            success=False
+            self.unlocated=[s for s in self.stations.values() if s not in fixedStations]
+            nunlocated=len(self.unlocated)
+            while self.tryLocateStation():
+                if len(self.unlocated) >= nunlocated:
+                    raise RuntimeError("Failed locate station in tryFixAngle")
+                nunlocated=len(self.unlocated)
+                success=True
+                if nunlocated == 0:
+                    break
+            break
 
-        self.clearFixedStations()
-        self.restoreFixedStations(fixedStations)
+        if not success:
+            self.clearFixedStations()
+            self.restoreFixedStations(fixedStations)
         return success
 
     def updateNetwork( self ):
         nstations=0
         for s in self.stations.values():
             if s.networkStation is None:
+                self.write("   Adding network station {0}\n".format(s.code))
                 s.networkStation=NetworkStation(s.code,xyz=s.xyz)
                 self.network.addStation( s.networkStation )
                 nstations += 1
