@@ -1,0 +1,89 @@
+>>>> test1az_result
+AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,source=input:1
+
+AZ,ST2,ST3,0.0000,0.0000,87.2365,0.0020,source=input:2
+>>>>
+>>>> test1sd_result
+SD,ST1,ST2,0.0000,0.0000,95.2365,0.0015,source=input:1
+
+SD,ST2,ST3,0.0000,0.0000,87.2365,0.0020,source=input:2
+>>>>
+>>>> test1zd_result
+ZD,ST1,ST2,0.0000,0.0000,95.2365,0.0015,source=input:1
+
+ZD,ST2,ST3,0.0000,0.0000,87.2365,0.0020,source=input:2
+>>>>
+>>>> test1lv_result
+LV,ST1,ST2,0.0000,0.0000,95.2365,0.0015,source=input:1
+
+LV,ST2,ST3,0.0000,0.0000,87.2365,0.0020,source=input:2
+>>>>
+>>>> test1ha_result
+HA,ST1,ST2,0.0000,0.0000,0.0000,0.0015,source=input:1
+HA,ST1,ST3,0.0000,0.0000,95.2365,0.0015,source=input:2
+
+HA,ST2,ST3,0.0000,0.0000,87.2365,0.0020,source=input:3
+HA,ST2,ST1,0.0000,0.0000,305.2800,0.0030,source=input:4
+HA,ST2,ST4,0.0000,0.0000,23.9200,0.0020,source=input:5
+>>>>
+>>>> test1sdh_result
+SD,ST1,ST2,0.1200,1.3000,95.2365,0.0015,source=input:1
+
+SD,ST2,ST3,0.1500,1.5200,87.2365,0.0020,source=input:2
+>>>>
+>>>> test1_result
+SD,ST1,ST2,0.0000,0.0000,281.3220,0.0080,source=input:1
+
+AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,source=input:1
+
+AZ,ST1,ST2,0.0000,0.0000,5.2365,0.0015,source=input:2
+
+SD,ST2,ST3,0.0000,0.0000,181.5220,0.0080,source=input:3
+>>>>
+>>>> test2_result
+SD,ST1,ST2,0.0000,0.0000,281.3220,0.0080,source=input:1
+
+HA,ST1,ST2,0.0000,0.0000,95.2365,0.0015,source=input:1
+HA,ST1,ST3,0.0000,0.0000,5.2365,0.0015,source=input:2
+HA,ST1,ST4,0.0000,0.0000,5.2365,0.0015,source=input:3
+
+SD,ST2,ST1,0.0000,0.0000,281.3220,0.0080,source=input:4
+
+HA,ST2,ST1,0.0000,0.0000,95.2365,0.0015,source=input:4
+HA,ST2,ST3,0.0000,0.0000,5.2365,0.0015,source=input:5
+
+SD,ST2,ST1,0.0000,0.0000,281.3220,0.0080,source=input:6
+
+HA,ST2,ST1,0.0000,0.0000,95.2365,0.0015,source=input:6
+HA,ST2,ST3,0.0000,0.0000,5.2365,0.0015,source=input:7
+>>>>
+>>>> test3_result
+SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,source=input:2
+
+SD,ST1,ST3,0.0000,0.0000,83.1365,0.0035,source=input:4
+
+HA,ST1,ST2,0.0000,0.0000,95.2365,0.0015,source=input:1
+HA,ST1,ST3,0.0000,0.0000,5.2365,0.0015,source=input:3
+HA,ST1,ST4,0.0000,0.0000,5.2365,0.0015,source=input:5
+
+HA,ST2,ST1,0.0000,0.0000,95.2365,0.0015,source=input:6
+HA,ST2,ST3,0.0000,0.0000,5.2365,0.0015,source=input:7
+
+HA,ST2,ST1,0.0000,0.0000,95.2365,0.0015,source=input:8
+HA,ST2,ST3,0.0000,0.0000,5.2365,0.0015,source=input:9
+>>>>
+>>>> test4_result
+AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,source=input:1
+
+SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,source=input:2
+>>>>
+>>>> test4a_result
+AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,daytime=night source=input:1 test_attr=test
+
+SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,daytime=day source=input:2 test_attr=None
+>>>>
+>>>> test5_result
+SD,ST1,ST2,0.0000,0.0000,95.2365,0.0015,source=input:1
+
+SD,ST2,ST3,0.0000,0.0000,87.2365,0.0020,source=input:2
+>>>>
