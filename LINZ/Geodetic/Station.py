@@ -239,3 +239,12 @@ class Station( object ):
         if not ddxyz:
             return xyz
         return xyz, np.identity(3), None
+
+    def calcVector( self, trgtstn, insthgt=0.0, trgthgt=0.0, refcoef=None, ddxyz=False ):
+        assert trgtstn is None
+        xyz1=self.xyz(insthgt)
+        xyz2=trgtstn.xyz(trgthgt)
+        dxyz=xyz2-xyz1
+        if not ddxyz:
+            return dxyz
+        return dxyz, -np.identity(3), np.identity(3)

@@ -10,13 +10,14 @@ from .Station import Station
 
 class ObservationValue( object ):
 
-    def __init__( self, inststn, trgtstn=None, value=0.0, stderr=None, insthgt=0.0, trgthgt=0.0 ):
+    def __init__( self, inststn, trgtstn=None, value=0.0, stderr=None, insthgt=0.0, trgthgt=0.0, attributes={} ):
         self.inststn=inststn
         self.trgtstn=trgtstn
         self.value=value
         self.stderr=stderr
         self.insthgt=insthgt
         self.trgthgt=trgthgt
+        self.attributes=attributes
 
     def __str__( self ):
         if isinstance(self.value,float):
@@ -35,6 +36,10 @@ class ObservationValue( object ):
             self.inststn,self.trgtstn,
             self.insthgt,self.trgthgt,
             strobs,strerr)
+        delim=','
+        if self.attributes:
+            attr=self.attributes
+            strvalue=strvalue+','+' '.join(str(k)+'='+str(attr[k]) for k in sorted(attr.keys()))
         return strvalue
 
 class Observation( object ):
@@ -66,6 +71,7 @@ class Observation( object ):
         'ZD': ObservationType('ZD','Zenith distance',1,Station.zenithDistanceTo),
         'LV': ObservationType('LV','Height difference',1,Station.heightDifferenceTo),
         'GX': ObservationType('GX','XYZ coordinate',3,Station.calcXYZ),
+        'GB': ObservationType('GB','XYZ baseline',3,Station.calcVector),
         }
 
     def __init__( self, obstype, obsdate=None, obsvalue=None, covariance=None ):

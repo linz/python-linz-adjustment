@@ -4,10 +4,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import re
 from .CsvRecord import Reader
 from .Observation import Observation, ObservationValue
 
-def read( csvfile, colnames=None ):
+def read( csvfile, colnames=None, attributes=None ):
     '''
     Reads observations from a data file.  The data file can have columns:
     
@@ -23,28 +24,47 @@ def read( csvfile, colnames=None ):
        xx_value  value for xx type observation 
        xx_error  error for xx type observation
 
+    Default column names can be overridden using the colnames parameter.  This is a dictionary
+    mapping input column names to required column names.
+
+    Additionally attributes can be specified as a list of names or a space separated string
+    Each which will be defined as observation value attributes.  Observations will also have
+    an attribute source containing file name and line number.  Attributes can be defined with 
+    type and optionality in the same way as CsvRecord columns.
+
     Each row can contain multiple observations usign the xx_value, xx_error format,
     or one row entered using the obstype, value, error.
 
     '''
-    csvreader=Reader('observation','''
-                     fromstn tostn date? 
-                     fromhgt:float? tohgt:float?
-                     obstype? obsset? 
-                     value:float? error:float?
-                     ha_value:float? ha_error:float?
-                     sd_value:float? sd_error:float?
-                     zd_value:float? zd_error:float?
-                     az_value:float? az_error:float?
-                     lv_value:float? lv_error:float?
-                     ''')
 
-    csvfile=csvreader.open(csvfile,colnames)
-    fields=csvfile.fieldsDefined()
+    columns='''
+         fromstn tostn date? 
+         fromhgt:float? tohgt:float?
+         obstype? obsset? 
+         value:float? error:float?
+         ha_value:float? ha_error:float?
+         sd_value:float? sd_error:float?
+         zd_value:float? zd_error:float?
+         az_value:float? az_error:float?
+         lv_value:float? lv_error:float?
+         '''
+
+    attributes=attributes or []
+    if isinstance(attributes,basestring):
+        attributes=attributes.split()
+    columns=columns+' '+' '.join(attributes)
+    attfuncs={}
+    for a in attributes:
+        a=re.sub(r'[:?].*','',a)
+        attfuncs[a]=eval('lambda x: x.'+a)
+
+    csvreader=Reader('observation',columns)
+    csvsrc=csvreader.open(csvfile,colnames)
+    fields=csvsrc.fieldsDefined()
     valuefuncs=[]
     for collist in (
         'value error obstype',
-        'ha_value ha_error obsset',
+        'ha_value ha_error',
         'sd_value sd_error',
         'zd_value zd_error',
         'az_value az_error',
@@ -54,7 +74,7 @@ def read( csvfile, colnames=None ):
             for needed in names[1:]:
                 if needed not in fields:
                     raise RuntimeError("Cannot have column {0} without {1} in {2}"
-                                       .format(names[0],needed,csvfile))
+                                       .format(names[0],needed,csvsrc.filename()))
             if names[0][2] == '_':
                 obstype="'"+names[0][:2].upper()+"'"
             else:
@@ -66,20 +86,28 @@ def read( csvfile, colnames=None ):
     lastfrom=None
     lastset=None
 
-    for row in csvfile.records():
+    recordno=0
+    filename=csvsrc.filename()
+
+    for row in csvsrc.records():
         # Send pending HA observations
         if haobs is not None and (row.fromstn != lastfrom or row.obsset != lastset):
             yield(haobs)
             haobs=None
         lastfrom=row.fromstn
         lastset=row.obsset
+        recordno += 1
+        attributes={'source': filename+':'+str(recordno)}
+        for k,f in attfuncs.iteritems():
+            attributes[k]=f(row)
 
         for f in valuefuncs:
             obstype,obsvalue,obserror=f(row)
             if obsvalue is None:
                 continue
             value=ObservationValue(row.fromstn,row.tostn,obsvalue,obserror,
-                                   row.fromhgt or 0.0, row.tohgt or 0.0)
+                                   row.fromhgt or 0.0, row.tohgt or 0.0,
+                                  attributes)
             if obstype == 'HA':
                 if haobs is None:
                     haobs=Observation('HA')

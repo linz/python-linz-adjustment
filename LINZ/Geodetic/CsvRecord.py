@@ -89,9 +89,9 @@ class Reader( object ):
         corresponding the defined fields.  Assumes the first
         record defines column names.
 
-        if colnames is supplied it maps from the field names to the
-        column names, ie
-          { fieldname: colname, ... }
+        if colnames is supplied it maps from the input column names to the
+        field names, ie
+          { colname: fieldname, ... }
         '''
 
         for record in self.open(source,colnames,filename).records():
@@ -103,7 +103,7 @@ class Reader( object ):
         in readiness for extracting records.
         '''
     
-        def __init__( self, csvrecord, source, colnames={}, filename=None ):
+        def __init__( self, csvrecord, source, colnames=None, filename=None ):
             if isinstance(source,basestring):
                 if filename is None:
                     filename=source
@@ -115,16 +115,18 @@ class Reader( object ):
             header=[f.lower() for f in self._csvf.next()]
             colnos=[];
             self._fields=csvrecord.fields()
-            if colnames is None:
-                colnames={}
+            headercolumns=header
+            if colnames is not None:
+                colnames={k.lower():v.lower() for k,v in colnames.iteritems()}
+                headercolumns=[colnames.get(h,h) for h in header]
+
             for i,f in enumerate(self._fields):
-                fname=colnames(f.name) if f.name in colnames else f.name
                 colno=-1
                 try:
-                    colno=header.index(fname.lower())
+                    colno=headercolumns.index(f.name)
                 except:
                     if not f.optional:
-                        raise RuntimeError(filename+' is missing required field '+fname)
+                        raise RuntimeError(filename+' is missing required field '+filename)
                 colnos.append(colno)
             self._header=header
             self._colnos=colnos
