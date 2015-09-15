@@ -209,19 +209,36 @@ class Adjustment( object ):
     The following entry points can be overridden in subclasses:
 
     High level functions:
-        setup
+        setup*
         run
-        report
-        writeOutputFiles
+        report*
+        writeOutputFiles*
 
     Functions to include additional parameters.  setupParameters should call
     addParameter and addParameterUpdate. observationEquation should call Adjustment.observationEquation
     and then update the resultant equations (may not be necessary if parameters are
-    applied indirectly via the coordParamMapping.
+    applied indirectly via the coordParamMapping).
 
-        setupParameters
+        setupParameters*
+        calcStationOffsets*
         observationEquation
         updateParameters
+
+    The adjustment can also be modified by adding a plugin as a class which implements 
+    any the functions marked with an asterisk.  The parameters in the plugin function will be the same 
+    for the corresponding Adjustment function.  The plugin must support a setAdjustment
+    method.  Other than that other methods are optional
+
+        class Plugin:
+
+            def __init__( self ):
+                self.adjustment=None
+
+            def setAdjustment( self, adjustment ):
+                self.adjustment=adjustment
+
+            def updateParameters( self, paramValues )
+                ....
 
     '''
 
@@ -249,7 +266,27 @@ class Adjustment( object ):
         self.options=options
         self.output=output_file
         self.parameters=[]
+        self.plugins=[]
+        self.pluginFuncs={}
         self.solved=0
+
+    def addPlugin( self, plugin ):
+        plugin.setAdjustment( self )
+        plugins.append(plugin)
+
+    def runPluginFunction( self, funcname, *params ):
+        if funcname not in self.pluginFuncs:
+            funcs=[
+                gettattr(p,funcname,None) for p in self.plugins
+                if getattr(p,funcname,None) is not None 
+                ]
+            self.pluginFuncs[funcname]=funcs if len(funcs) > 0 else None
+
+        funcs=self.pluginFuncs[funcname]
+        if funcs is None:
+            return None
+        else:
+            return [f(*params) for f in self.pluginFuncs[funcname]]
 
     def defaultOptions():
         return Options()
@@ -302,10 +339,11 @@ class Adjustment( object ):
                         obs.covariance *= factor*factor
                 self.observations.append(obs)
 
-    def usedStations( self ):
+    def usedStations( self, includeFixed=True ):
         '''
         Get dictionary with keys matching the stations used in the list
-        of observations.
+        of observations.  If includeFixed is False then only adjusted
+        stations are included.
         '''
         used={}
         for o in self.observations:
@@ -313,6 +351,9 @@ class Adjustment( object ):
                 used[obsval.inststn]=1
                 used[obsval.trgtstn]=1
         used={code:1 for code in used.keys() if self.stations.get(code) is not None}
+        if not includeFixed:
+            for code in self.options.fixedStations:
+                used.pop(code,None)
         return used
 
     def missingStationList( self, clean=False ):
@@ -416,20 +457,24 @@ class Adjustment( object ):
             updatexyz: if true then the station coordinate is updated based on
                 the parameters in updateStationCoordParameters
 
-        Default implementation simply adjusts x,y,z coord for each station.
+        Default implementation simply adjusts x,y,z or e,n,u coord for each station.
 
-        The routines setStationCoordMapping and updateStationCoordParameters
-        can be overridden to parameterize station coordinates in terms of other
-        parameters.
+        This routine can be overridden to parameterize station coordinates 
+        in terms of other parameters.
+
+        Alternatively this can be done using plugin functions.  In either case the 
+        functions should define mappings in the coordParamMapping dictionary.  This
+        routine will only set up mappings for stations not included in this 
+        dictionary.
 
         '''
 
         # Get a list of used stations - remove fixed stations from it
         # Result is a list of stations to adjust
 
-        usedStations=self.usedStations()
-        for code in self.options.fixedStations:
-            usedStations.pop(code,None)
+        usedStations=self.usedStations(includeFixed=False)
+
+        self.runPluginFunction('setupStationCoordMapping')
 
         mapping=self.coordParamMapping
 
@@ -467,7 +512,7 @@ class Adjustment( object ):
                 denu = stn.enu().dot(dxyz.T).T
                 self.writeDebugOutput("  {0} ENU change {1:.4f} {2:.4f} {3:.4f}\n".format(
                     code,denu[0,0],denu[0,1],denu[0,2]))
-            if mapping[2]:
+            if len(mapping) > 2 and mapping[2]:
                 xyz += dxyz.reshape((3,))
                 stn.setXYZ(xyz)
             offset=linalg.norm(dxyz)
@@ -496,6 +541,8 @@ class Adjustment( object ):
         setupStationCoordMapping()
 
         '''
+        self.runPluginFunction('setupParameters')
+        self.runPluginFunction('setupStationCoordMapping')
         return self.setupStationCoordMapping()
 
     def setupNormalEquations( self ):
@@ -509,10 +556,64 @@ class Adjustment( object ):
         self.nobs=0
         return nprm
 
+    def calcStationOffsets( self, obs ):
+        '''
+        Determines the offsets of stations that apply for a particular observation.
+        Returns a station offset for the instrument and target station of the observation.
+
+        The offset can account for factors such as instrument heights and deformation.
+        Each offset is returned as an ENU offset local to the station.
+
+        Returns a list of entries, one for each observation value.  Each entry in the list
+        has four values:
+            inst_offset    [de,dn,du] for instrument station
+            trgt_offset    [de,dn,du] for target station
+            inst_params    None or mapping of offset parameters to de,dn,du
+            trgt_params    None or mapping of offset parameters to de,dn,du
+
+        Each set of parameters is defined by
+            paramno: parameter number array - parameters used to define stations
+            denudp: (n,3) array defining differential of E,N,U against param
+
+        Subclasses can override for additional offsets.  Plugin offsets are added
+        to form a total offset
+        '''
+        offsets=[([0,0,o.insthgt],[0,0,o.trgthgt],None,None) for o in obs.obsvalues]
+        pluginOffsets=self.runPluginFunction('calcStationOffsets',obs)
+        if pluginOffsets:
+            for i,offset in enumerate(offsets):
+                offi,offt,doffi,dofft=offset
+                for poffset in pluginOffsets:
+                    poffi,pofft,dpoffi,dpofft=poffset[i]
+                    if poffi is not None:
+                        if offi is not None:
+                            offi=np.add(offi,poffi)
+                        else:
+                            offi=poffi
+                    if pofft is not None:
+                        if offt is not None:
+                            offt=np.add(offt,pofft)
+                        else:
+                            offt=pofft
+                    if dpoffi is not None:
+                        if doffi is not None:
+                            doffi[0].extend(dpoffi[0])
+                            doffi[1]=np.vstack((doffi[1],dpoffi[1]))
+                        else:
+                            doffi=dpoffi
+                    if dpofft is not None:
+                        if dofft is not None:
+                            dofft[0].extend(dpofft[0])
+                            dofft[1]=np.vstack((dofft[1],dpofft[1]))
+                        else:
+                            dofft=dpofft
+                offsets[0]=(offi,offt,doffi,dofft)
+        return offsets
+
     def observationEquation( self, obs ):
         '''
         Forms the observation equations for an observation o, which may
-        be an array of observations
+        be an array of observation values
         '''
         refcoef=self.options.refractionCoefficient
         obstype=obs.obstype
@@ -525,6 +626,7 @@ class Adjustment( object ):
         schreiber=None
         if diagonal:
             obscovar=np.zeros((nrow,1))
+        offsets=self.calcStationOffsets( obs )
         for i,o in enumerate(obs.obsvalues):
             stf=self.stations.get(o.inststn)
             if stf is None:
@@ -534,7 +636,13 @@ class Adjustment( object ):
                 stt=self.stations.get(o.trgtstn)
                 if stt is None:
                     raise RuntimeError("Station "+o.trgtstn+" is not defined")
-            calcval,ddxyz0,ddxyz1=obstype.calcobs(stf,trgtstn=stt,insthgt=o.insthgt,trgthgt=o.trgthgt,refcoef=refcoef,ddxyz=True)
+            # Get ENU offsets and differential with respect to parameters
+            offi,offt,doffi,dofft=offsets[i]
+
+            # Calculate the observed value and its dependence on XYZ coordinates
+            calcval,ddxyz0,ddxyz1=obstype.calcobs(stf,trgtstn=stt,insthgt=offi,trgthgt=offt,refcoef=refcoef,ddxyz=True)
+
+            # Set up the observation residual and covariance
             i0=i*nval
             i1=i0+nval
             if nval == 1:
@@ -543,12 +651,22 @@ class Adjustment( object ):
                     obscovar[i,0]=o.stderr*o.stderr
             else:
                 obsres[i0:i1,0]=np.array(o.value)-calcval
+
+            # Set up the coordinate parameters
             mapping=self.coordParamMapping.get(o.inststn,None)
             if mapping is not None:
                 obseq[i0:i1,mapping[0]]=mapping[1].dot(ddxyz0)
             mapping=self.coordParamMapping.get(o.trgtstn,None)
             if mapping is not None:
                 obseq[i0:i1,mapping[0]]+=mapping[1].dot(ddxyz1)
+
+            # Set up the offset parameters
+            for stn,doff,dxyz in ((stf,doffi,ddxyz0),(stt,dofft,ddxyz1)):
+                if doff is None:
+                    continue
+                prms,dprm=doff
+                doffdxyz=dprm.dot(stn.genu())
+                obseq[i0:i1,prms]=dprm.dot(dxyz)
 
         # Need special handling for horizontal angles
 
@@ -820,6 +938,8 @@ class Adjustment( object ):
 
         if self.options.outputStationFile is not None:
             self.stations.writeCsv(self.options.outputStationFile)
+
+        self.runPluginFunction('writeOutputFiles')
         
     def setupLocalGeoid( self, geoidModel ):
         refStationCode=geoidModel['code']
@@ -881,6 +1001,10 @@ class Adjustment( object ):
                 self.filterObsByStation(remove=missing)
         self.filterObsByStation(keep=options.acceptStations,remove=options.rejectStations)
 
+        # Run any plugin setup functions
+
+        self.runPluginFunction('setup')
+
         # Set up the normal equations
         self.setupNormalEquations()
 
@@ -907,6 +1031,7 @@ class Adjustment( object ):
     def report(self):
         self.writeSummaryStats()
         self.writeResidualSummary()
+        self.runPluginFunction('report')
 
 def main(adjustment_class=Adjustment):
     import argparse

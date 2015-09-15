@@ -92,15 +92,25 @@ class Station( object ):
         '''
         return Station._ellipsoid.geodetic(self.xyz())
 
-    def xyz( self, insthgt=0.0 ):
+    def xyz( self, insthgt=None ):
         '''
         Return the coordinates of the point as geocentric X, Y, Z
+
+        Can include an offset insthgt, which is either None, 
+        a floating point offset height, or a numpy array of E,N,U
+        offsets.
         '''
         if self._xyz is None:
             raise RuntimeError('Coordinates not defined for station '+self._code)
-        if insthgt == 0.0:
+        if insthgt is None:
             return self._xyz
-        return self._xyz + insthgt*self._genu[2]
+        if isinstance(insthgt,float):
+            if insthgt == 0.0:
+                return self._xyz
+            insthgt=np.array([0.0,0.0,insthgt])
+        else:
+            insthgt=np.array(insthgt)
+        return self._xyz + insthgt.dot(self._genu)
 
     def xieta( self ):
         '''
@@ -119,7 +129,8 @@ class Station( object ):
         Returns the east/north/up vectors in the geodetic coordinate system
         '''
         # Check coordinates are defined
-        self.xyz()
+        if self._enu is None:
+            raise RuntimeError('Coordinates not defined for station '+self._code)
         return self._enu
 
     def genu( self ):
@@ -127,7 +138,8 @@ class Station( object ):
         Returns the east/north/up vectors in the gravitational coordinate system
         '''
         # Check coordinates are defined
-        self.xyz()
+        if self._genu is None:
+            raise RuntimeError('Coordinates not defined for station '+self._code)
         return self._genu
 
     # Calculate functions have a common set of parameters
@@ -239,12 +251,3 @@ class Station( object ):
         if not ddxyz:
             return xyz
         return xyz, np.identity(3), None
-
-    def calcVector( self, trgtstn, insthgt=0.0, trgthgt=0.0, refcoef=None, ddxyz=False ):
-        assert trgtstn is None
-        xyz1=self.xyz(insthgt)
-        xyz2=trgtstn.xyz(trgthgt)
-        dxyz=xyz2-xyz1
-        if not ddxyz:
-            return dxyz
-        return dxyz, -np.identity(3), np.identity(3)

@@ -71,7 +71,7 @@ class Observation( object ):
         'ZD': ObservationType('ZD','Zenith distance',1,Station.zenithDistanceTo),
         'LV': ObservationType('LV','Height difference',1,Station.heightDifferenceTo),
         'GX': ObservationType('GX','XYZ coordinate',3,Station.calcXYZ),
-        'GB': ObservationType('GB','XYZ baseline',3,Station.calcVector),
+        'GB': ObservationType('GB','XYZ baseline',3,Station.vectorTo),
         }
 
     def __init__( self, obstype, obsdate=None, obsvalue=None, covariance=None ):
