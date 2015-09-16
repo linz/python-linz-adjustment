@@ -17,6 +17,11 @@ class Station( object ):
 
     _ellipsoid = Ellipsoid.GRS80
 
+    OFFSET_H=0
+    OFFSET_ENU=1
+    OFFSET_GENU=2
+    OFFSET_XYZ=3
+
     def __init__( self, code, name=None, llh=None, xyz=None, xieta=None, geoidhgt=None ):
         '''
         Initiallize a station.  Can specify either xyz, or llh coordinates.
@@ -92,25 +97,29 @@ class Station( object ):
         '''
         return Station._ellipsoid.geodetic(self.xyz())
 
-    def xyz( self, insthgt=None ):
+    def xyz( self, offset=None, offsettype=None ):
         '''
         Return the coordinates of the point as geocentric X, Y, Z
 
-        Can include an offset insthgt, which is either None, 
+        Can include an offset instofst, which is either None, 
         a floating point offset height, or a numpy array of E,N,U
         offsets.
         '''
         if self._xyz is None:
             raise RuntimeError('Coordinates not defined for station '+self._code)
-        if insthgt is None:
+        if offset is None:
             return self._xyz
-        if isinstance(insthgt,float):
-            if insthgt == 0.0:
-                return self._xyz
-            insthgt=np.array([0.0,0.0,insthgt])
-        else:
-            insthgt=np.array(insthgt)
-        return self._xyz + insthgt.dot(self._genu)
+        if offsettype is None:
+            offsettype=Station.OFFSET_H
+        if offsettype == Station.OFFSET_H:
+            offset=[0,0,offset]
+        if offsettype == Station.OFFSET_H or offsettype == Station.OFFSET_GENU:
+            offset=np.array(offset).dot(self._genu)
+        elif offsettype == Station.OFFSET_ENU:
+            offset=np.array(offset).dot(self._enu)
+        elif offsettype != Station.OFFSET_XYZ:
+            raise RuntimeError('Invalid offset type in Station.xyz')
+        return self._xyz+offset
 
     def xieta( self ):
         '''
@@ -145,8 +154,8 @@ class Station( object ):
     # Calculate functions have a common set of parameters
     #  self (instrument station)
     #  trgtstn (target station)
-    #  insthgt (instrument station height)
-    #  trgthgt (target station height)
+    #  instofst (instrument station height)
+    #  trgtofst (target station height)
     #  refcoef (refraction coefficient)
     #  ddxyz (calculate differentials wrt x,y, z)
     #
@@ -154,32 +163,32 @@ class Station( object ):
     # and other unused parameters.
 
 
-    def vectorTo( self, trgtstn=None, insthgt=0.0, trgthgt=0.0, refcoef=None, ddxyz=False ):
-        diff=trgtstn.xyz(trgthgt) - self.xyz(insthgt)
+    def vectorTo( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=None, ddxyz=False, offsettype=None ):
+        diff=trgtstn.xyz(trgtofst, offsettype=offsettype) - self.xyz(instofst,offsettype=offsettype)
         if not ddxyz:
             return diff
         return diff, -np.identity(3), np.identify(3)
 
-    def distanceTo( self, trgtstn=None, insthgt=0.0, trgthgt=0.0, refcoef=None, ddxyz=False ):
+    def distanceTo( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=None, ddxyz=False, offsettype=None ):
         '''
         Calculate distance to antrgtstn point and optionally its 
         differentials wrt X,Y,Z coordinates of base point and target
         point
         '''
-        diff=self.vectorTo(trgtstn, insthgt, trgthgt)
+        diff=self.vectorTo(trgtstn, instofst, trgtofst, offsettype=offsettype)
         dist=np.sqrt(np.vdot(diff,diff))
         if not ddxyz:
             return dist
         diff /= dist
         return dist, -diff, diff
 
-    def azimuthTo( self, trgtstn=None, insthgt=0.0, trgthgt=0.0, refcoef=None, ddxyz=False, geodetic=False ):
+    def azimuthTo( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=None, ddxyz=False, geodetic=False, offsettype=None ):
         '''
         Calculate bearing (degrees) to antrgtstn point and its 
         differentials wrt X,Y,Z coordinates of base point and target
         point
         '''
-        diff=self.vectorTo(trgtstn, insthgt, trgthgt)
+        diff=self.vectorTo(trgtstn, instofst, trgtofst, offsettype=offsettype)
         enu=self._enu if geodetic else self._genu
         denu=enu.dot(diff)
         brng=math.degrees(math.atan2(denu[0],denu[1]))
@@ -195,16 +204,16 @@ class Station( object ):
         diff *= np.degrees(1)
         return brng, -diff, diff
 
-    def geodeticAzimuthTo( self, trgtstn=None, insthgt=0.0, trgthgt=0.0, refcoef=None, ddxyz=False ):
-        return self.azimuthTo( trgtstn=trgtstn, insthgt=insthgt, trgthgt=trgthgt, refcoef=refcoef, ddxyz=ddxyz, geodetic=True )
+    def geodeticAzimuthTo( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=None, ddxyz=False, offsettype=None ):
+        return self.azimuthTo( trgtstn=trgtstn, instofst=instofst, trgtofst=trgtofst, refcoef=refcoef, ddxyz=ddxyz, geodetic=True, offsettype=offsettype )
 
-    def zenithDistanceTo( self, trgtstn=None, insthgt=0.0, trgthgt=0.0, refcoef=0.0, ddxyz=False ):
+    def zenithDistanceTo( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=0.0, ddxyz=False, offsettype=None ):
         '''
         Calculate zenith distance (degrees) to antrgtstn point and 
         its differentials wrt X,Y,Z coordinates of base point and target
         point
         '''
-        diff=self.vectorTo(trgtstn, insthgt, trgthgt)
+        diff=self.vectorTo(trgtstn, instofst, trgtofst, offsettype=offsettype)
         denu=self._genu.dot(diff)
         hordist=math.hypot(denu[0],denu[1])
         brng=math.atan2(hordist,denu[2])
@@ -228,14 +237,41 @@ class Station( object ):
         diff *= np.degrees(1)
         return brng, -diff, diff
 
-    def heightDifferenceTo( self, trgtstn=None, insthgt=0.0, trgthgt=0.0, refcoef=None, ddxyz=False ):
+    def heightDifferenceTo( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=None, ddxyz=False, offsettype=None ):
         '''
         Calculate height difference between trgtstn point and this and optionally
         its differentials wrt X,Y,Z coordinates of base point and target
         point.  
         '''
-        hgtdiff=((trgtstn._llh[2]+trgthgt-trgtstn._geoidhgt)
-                 -(self._llh[2]+insthgt-self._geoidhgt))
+        # Note: some lack of rigour here in whether we are considering offsets in terms
+        # of geometric or gravitational vertical. Strictly should be based on gravitational, 
+        # but this will be inconsistent if the geoid height is not also updated to reflect
+        # the deflection of vertical...
+        #
+        # Generally differences will be inconsequential...
+
+        hgtdiff=((trgtstn._llh[2]-trgtstn._geoidhgt)
+                 -(self._llh[2]-self._geoidhgt))
+        if instofst is not None or trgtofst is not None:
+            if offsettype is None:
+                offsettype=Station.OFFSET_H
+            if offsettype==Station.OFFSET_H:
+                hgtdiff += (trgtofst or 0.0) - (instofst or 0.0)
+            else:
+                instofst=instofst if instofst is not None else  [0.0,0.0,0.0]
+                trgtofst=trgtofst if trgtofst is not None else  [0.0,0.0,0.0]
+                instofst=np.array(instofst)
+                trgtofst=np.array(trgtofst)
+                if offsettype == Station.OFFSET_XYZ:
+                    instofst = instofst.dot(self._genu.T)
+                    trgtofst = trgtofst.dot(self._genu.T)
+                elif offsettype == Station.OFFSET_ENU:
+                    instofst = instofst.dot(self._enu).dot(self._genu.T)
+                    trgtofst = trgtofst.dot(self._enu).dot(self._genu.T)
+                elif offsettype != Station.OFFSET_GENU:
+                    raise RuntimeError("Invalid offsettype in Station.heightDifferentTo")
+                hgtdiff += trgtofst[2] - instofst[2]
+
         if not ddxyz:
             return hgtdiff
         # Technically differentials should be based on genu rather than enu, but
@@ -243,11 +279,11 @@ class Station( object ):
         # correct with current formulation.
         return hgtdiff, -self._enu[2], trgtstn._enu[2].copy()
 
-    # Note - trgtstn and trgthgt included to allow common function call with
+    # Note - trgtstn and trgtofst included to allow common function call with
     # other observation types
-    def calcXYZ( self, trgtstn=None, insthgt=0.0, trgthgt=0.0, refcoef=None, ddxyz=False ):
+    def calcXYZ( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=None, ddxyz=False, offsettype=None ):
         assert trgtstn is None
-        xyz=self.xyz(insthgt)
+        xyz=self.xyz(instofst, offsettype=offsettype)
         if not ddxyz:
             return xyz
         return xyz, np.identity(3), None
