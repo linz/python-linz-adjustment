@@ -5,107 +5,15 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import sys
-import os
 import os.path
-import re
-import unittest
 import numpy as np
 from numpy import array
+from LINZ import fileunittest
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 from Geodetic import Station
 
-# Set output options for dumping numpy data
-np.set_printoptions(precision=10,suppress=True)
-
-# Floating point test tolerance
-defaultTolerance=1.0e-8
-
-# Set True to write the results from all tests to stdout
-resultsFile=os.path.splitext(__file__)[0]+'.results'
-dumpResults=False
-dumpFile=os.path.splitext(__file__)[0]+'.results.new'
-
-class StationTestCase( unittest.TestCase ):
-
-    testResults={}
-
-    @classmethod
-    def setUpClass( cls ):
-        global resultsFile
-        data=''
-        try:
-            with open(resultsFile) as rf:
-                data=rf.read()
-        except:
-            pass
-        resultRe=re.compile(r'^\>\>\>\>\s+(\w+)\s*(.*?)(?=^\>\>\>\>)',re.MULTILINE | re.DOTALL)
-        for test,result in resultRe.findall(data):
-            cls.testResults[test]=result.strip()
-
-    def setUp( self ):
-        global dumpResults
-        global dumpFile
-        self.dumpfh=None
-        if dumpResults: 
-            self.dumpfh=open(dumpFile,'a')
-
-    def tearDown( self ):
-        if self.dumpfh:
-            self.dumpfh.write(">>>>\n")
-            self.dumpfh.close()
-
-    def check( self,testname,output,message=None,tolerance=None):
-        global dumpResults
-        testcode=testname.lower()
-        testcode=re.sub(r'\s+','_',testcode)
-        testcode=re.sub(r'\W','_',testcode)
-        if dumpResults:
-            self.dumpfh.write(">>>> "+testcode+" ")
-            self.dumpfh.write(output if isinstance(output,basestring) else repr(output))
-            self.dumpfh.write("\n")
-        else:
-            message=message or testname+' incorrect'
-            expected=self.testResults.get(testcode)
-            if not isinstance(output,basestring):
-                expected=eval(expected)
-            self.checkEqual(output,expected,message,tolerance)
-
-    def checkEqual( self, output, expected, message, tolerance ):
-        # Equality check with tolerance on floating point numbers and handling
-        # of numpy arrays
-        global defaultTolerance
-        tolerance=tolerance or defaultTolerance
-        if isinstance(output,np.ndarray):
-            error=np.max(np.abs(output-expected))
-            if error > tolerance:
-                self.fail(message+" max diff {0:.3e}".format(error))
-        elif isinstance(output,float):
-            message=message+" ({0} != {1})".format(output,expected)
-            self.assertAlmostEqual(output,expected,msg=message,delta=tolerance)
-        elif isinstance(output,basestring):
-            output=output.strip()
-            expected=expected.strip()
-            if output != expected:
-                self.fail(message+"  ("+output+" != "+expected+")")
-        elif isinstance(output,dict):
-            if not message.endswith(']'):
-                message=message+' '
-            for k in expected.keys():
-                self.checkEqual(output[k],expected[k],message+'[{0}]'.format(k),tolerance)
-        elif hasattr(output,'__getitem__'):
-            if not message.endswith(']'):
-                message=message+' '
-            for i,e in enumerate(expected):
-                o=output[i]
-                self.checkEqual(o,e,message+'[{0}]'.format(i),tolerance)
-        else:
-            self.assertEqual(output,expected,msg=message)
-
-    def reportFail( self, message ):
-        global dumpResults
-        if not dumpResults:
-            self.fail(message)
+class StationTestCase( fileunittest.TestCase ):
 
     def checkStation( self, test, station, checkGrav=True, checkEnu=False ):
         self.check(test+' code',station.code())
@@ -184,9 +92,4 @@ class StationTestCase( unittest.TestCase ):
                                 .format(name,maxerror,fdata[2],fdiff))
 
 if __name__=="__main__":
-    if '--dump' in sys.argv:
-        sys.argv.remove('--dump')
-        dumpResults=True
-        print("**** Dumping output - not running tests!")
-        os.unlink(dumpFile)
-    unittest.main()
+    fileunittest.main()

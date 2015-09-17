@@ -5,11 +5,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import sys
-import numpy as np
 import StringIO
 import os.path
-import re
-import unittest
+from LINZ import fileunittest
+
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 from Geodetic import CsvObsFile
 
@@ -89,21 +88,7 @@ ST1,ST2,0.12,1.3,95.2365,0.0015
 ST2,ST3,0.15,1.52,87.2365,0.0020
 '''
 
-# Set True to write the results from all tests to stdout
-dumpResults=False
-
-class CsvObsFileTestCase( unittest.TestCase ):
-
-    testResults={}
-
-    @classmethod
-    def setupClass( cls ):
-        resultsFile=os.path.splitext(__file__)[0]+'.results'
-        with open(resultsFile) as rf:
-            data=rf.read()
-        resultRe=re.compile(r'^\>\>\>\>\s+(\w+)\s*$(.*?)^\>\>\>\>',re.MULTILINE | re.DOTALL)
-        for test,result in resultRe.findall(data):
-            cls.testResults[test]=result.strip()
+class CsvObsFileTestCase( fileunittest.TestCase ):
 
     def check_csv_output( self, input, varname, attributes=None, colnames=None ):
         global printAllResults
@@ -111,14 +96,7 @@ class CsvObsFileTestCase( unittest.TestCase ):
         result=''
         for obs in CsvObsFile.read(source,attributes=attributes,colnames=colnames):
             result=result+"\n"+str(obs)
-        result=result.strip()
-        expected=CsvObsFileTestCase.testResults.get(varname,'')
-        if (result != expected) or dumpResults:
-            print(">>>>",varname)
-            print(result)
-            print(">>>>")
-        if not dumpResults:
-            self.assertEqual(result,expected)
+        self.check(varname,result)
 
     def test_001_simple_obs_csv( self ):
         '''
@@ -160,4 +138,4 @@ class CsvObsFileTestCase( unittest.TestCase ):
             'value':'sd_value','error':'sd_error'})
 
 if __name__=="__main__":
-    unittest.main()
+    fileunittest.main()
