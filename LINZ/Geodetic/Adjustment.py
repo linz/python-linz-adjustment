@@ -1078,8 +1078,9 @@ class Adjustment( object ):
             range=gm['range']
             self.stations.setLocalGeoid(code,geoidHeight,xieta,range)
 
+    def ignoreMissingStations( self ):
         # Deal with missing stations
-        if options.ignoreMissingStations:
+        if self.options.ignoreMissingStations:
             missing=self.missingStationList()
             if len(missing) > 0:
                 self.write("Ignoring missing stations:\n")
@@ -1116,6 +1117,7 @@ class Adjustment( object ):
     def runSetup( self ):
         self.loadDataFiles()
         self.runPluginFunction('setup')
+        self.ignoreMissingStations()
         self.setupNormalEquations()
 
     def runCalculateSolution(self):
