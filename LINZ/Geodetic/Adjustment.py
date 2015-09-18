@@ -13,6 +13,7 @@ import numpy as np
 from numpy import linalg
 
 from .Network import Network
+from .Station import Station
 from .Observation import Observation
 
 '''
@@ -28,162 +29,38 @@ class SingularityError( RuntimeError ): pass
 
 class Options( object  ):
     '''
-    Class to define the options used in an adjustment
+    Class to define the options used in an adjustment.
 
-    Subclasses can override the __init__ and loadConfig function to read 
-    additional information from a configuration.  Note that loadConfig may
-    be called more than once with different configuration settings, so items
-    should be initiallized in __init__ and only updated in loadConfig.
     '''
-
     def __init__(self,config_file=None):
-        # File names
-        self.listingFile=None
-        self.stationFile=None
-        self.dataFiles=[]
-        self.outputStationFile=None
-        self.outputResidualFile=None
-        # Station options
-        self.fixedStations=[]
-        self.acceptStations=[]
-        self.rejectStations=[]
-        self.reweightObsType={}
-        self.ignoreMissingStations=False
-        self.calcMissingCoords=False
-        self.localGeoidModel=None
-        # Adjustment options
-        self.maxIterations=10
-        self.convergenceTolerance=0.0001
-        self.adjustENU=False
-        self.refractionCoefficient=0.075
-        # Output options
-        self.verbose=False
-        self.debugStationOffsets=False
+        self.values={}
 
-        # Specific outputs - only apply if verbose is True
-        self.debugStationOffsets=False
-        self.debugObservationEquations=False
-        self.debugCalcMissingCoords=False
-        if config_file is not None:
-            self.loadConfigFile( config_file )
+    def __getattr__( self, name ):
+        if name in self.values:
+            return self.values[name]
+        return object.__getattr__( name )
 
-    def loadConfigFile( self, config_file, write=None ):
-        cfg={}
-        with open(config_file) as cfgf:
-            for l in cfgf:
-                try:
-                    l=l.strip()
-                    if len(l)==0 or l.startswith('#'):
-                        continue
-                    try:
-                        parts=l.split(None,1)
-                        item=parts[0].lower()
-                        value=parts[1] if len(parts)==2 else 'y'
-                    except:
-                        raise RuntimeError("Invalid configuration line: ",l)
-                    self.set(item,value)
-                    item=item.lower()
-                    cfg[item]=value if item not in cfg else cfg[item]+'\n'+value
-                except Exception as ex:
-                    if write is not None:
-                        write(ex.message)
-                    else:
-                        raise
+    def __setattr__( self, name, value ):
+        if name in self.values:
+            return self.values[name]
 
-    def getbool(self,value):
-        return 'yes'.startswith(value.lower())
-
-
-    def set( self, item, value ):
-        # File names
-        item=item.lower()
-        value=value.strip()
-        if item == 'listing_file':
-            self.listingFile=value
-        elif item == 'coordinate_file':
-            self.stationFile=value
-        elif item == 'data_file':
-            self.dataFiles.append(value)
-        elif item == 'output_coordinate_file':
-            self.outputStationFile=value
-        elif item == 'residual_csv_file':
-            self.outputResidualFile=value
-
-        # Station selection
-        elif item == 'fix':
-            self.addFixedStations(value.split())
-        elif item == 'accept':
-            self.addAcceptStations(value.split())
-        elif item == 'reject':
-            self.addRejectStations(value.split())
-        elif item == 'ignore_missing_stations':
-            self.ignoreMissingStations=self.getbool(value)
-        elif item == 'calculate_missing_stations':
-            self.calcMissingCoords=self.getbool(value)
-
-        # Geoid model
-        elif item == 'local_geoid':
-            try:
-                gparts=value.split()
-                code=gparts.pop(0)
-                geoidHeight,xi,eta=(float(v) for v in gparts[0:3])
-                range=float(gparts[4]) if len(gparts)==5 else None
-            except:
-                raise RuntimeError("Invalid local_geoid: "+value)
-            self.localGeoidModel={'code':code,'height':geoidHeight,'xi':xi,'eta':eta, 'range':range}
-
-        # Observation options
-        elif item == 'reweight_observation_type':
-            if value != '':
-                match=re.match(r'([a-z]{2})\s+(\d+(?:\.\d+)?)$',value,re.I)
-                if not match:
-                    raise RuntimeError('Invalid reweight_observation_type option: '+value)
-                typecode=match.group(1).upper()
-                factor=float(match.group(2))
-                self.reweightObsType[typecode]=factor
-
-        # Adjustment options
-        elif item == 'convergence_tolerance':
-            self.convergenceTolerance=float(value)
-        elif item == 'max_iterations':
-            self.maxIterations=int(value)
-        elif item == 'adjust_enu':
-            self.adjustENU=self.getbool(value)
-        elif item == 'refraction_coefficient':
-            self.refractionCoefficient=float(value)
-
-        # Output options
-        elif item == 'verbose':
-            self.verbose=self.getbool(value)
-
-        # Debug options
-        elif item == 'debug_observation_equations':
-            self.debugObservationEquations=self.getbool(value)
-        elif item == 'debug_station_offsets':
-            self.debugStationOffsets=self.getbool(value)
-        elif item == 'debug_calculate_missing_stations':
-            self.debugCalcMissingCoords=self.getbool(value)
-        else:
-            raise RuntimeError('Unrecognized configuration item: '+item+': '+value)
-
-    def addFixedStations( self, codelist ):
+    def setupOptions( self, **options ):
         '''
-        Add a list of additional stations to the fixed stations list
+        Adds option and default values to the options array
         '''
-        self.fixedStations.extend(codelist)
+        self.values.update(options)
 
-    def addAcceptStations( self, codelist ):
+    def update( self, options ):
         '''
-        Add a list of additional stations to use in the adjustment 
-        (other stations will be rejected)
+        Update options from options list, but only if the option is already defined.
         '''
-        self.acceptStations.extend(codelist)
-
-    def addRejectStations( self, codelist ):
-        '''
-        Add a list of additional stations to be rejected from the adjustment
-        '''
-        self.rejectStations.extend(codelist)
+        if isinstance (options,Options):
+            options=options.values
+        for k,v in options.iteritems():
+            if k in values:
+                values[k]=v
+            else:
+                raise KeyError(k)
 
 class ObsEq( object ):
 
@@ -210,7 +87,7 @@ class Adjustment( object ):
 
     High level functions:
         setup*
-        run
+        calculateSolution**
         report*
         writeOutputFiles*
 
@@ -225,17 +102,33 @@ class Adjustment( object ):
         updateParameters
 
     The adjustment can also be modified by adding a plugin as a class which implements 
-    any the functions marked with an asterisk.  The parameters in the plugin function will be the same 
-    for the corresponding Adjustment function.  The plugin must support a setAdjustment
-    method.  Other than that other methods are optional
+    any the functions marked with *.  Note that for the calculateSolution function only the last defined
+    plugin function will be used.  The parameters in the plugin function will be the same 
+    for the corresponding Adjustment function.  
 
         class Plugin:
 
-            def __init__( self ):
-                self.adjustment=None
-
-            def setAdjustment( self, adjustment ):
+            def __init__( self, adjustment ):
                 self.adjustment=adjustment
+                # If want to add adjustment options...
+                self.options=adjustment.options
+                self.options.setupOptions(
+                    option=value,
+                    option=value,...
+                    )
+
+            # Plugin function to use options from config file
+
+            def setConfigOption( self, item, value ):
+                if item=='opt1':
+                    self.options.item=value
+                elif:
+                    ...
+                else:
+                    return False
+                return True
+
+            # Other functions implemented by plugin
 
             def updateParameters( self, paramValues )
                 ....
@@ -248,48 +141,202 @@ class Adjustment( object ):
                  options=None,
                  config_file=None,
                  output_file=None,
+                 plugins=[],
                  verbose=False):
 
         self.stations=stations
         self.observations=observations
 
-        options=options or self.defaultOptions()
+        self.options=Options()
+        self.setupOptions()
+        if verbose:
+            options.set('verbose','yes')
+        self.output=output_file
+        self.parameters=[]
+        self.plugins=[self]
+        self.pluginFuncs={}
+
+        # Each plugin is added before reading configuration
+        if plugins is not None:
+            for plugin in plugins:
+                self.addPlugin( plugins )
+        self.solved=0
+
+        # Setup configuration
         if config_file is not None:
             options.loadConfigFile( config_file, sys.stderr.write )
+        if options is not None:
+            self.options.update(options)
         if verbose:
             options.set('verbose','yes')
         if output_file is None:
             output_file = options.listingFile
         if isinstance(output_file,basestring):
             output_file=open(output_file,"w")
-
-        self.options=options
         self.output=output_file
-        self.parameters=[]
-        self.plugins=[]
+
+    def addPlugin( self, pluginClass ):
+        plugin=pluginClass(self)
+        self.plugins.append(plugin)
         self.pluginFuncs={}
-        self.solved=0
 
-    def addPlugin( self, plugin ):
-        plugin.setAdjustment( self )
-        plugins.append(plugin)
-
-    def runPluginFunction( self, funcname, *params ):
+    def runPluginFunction( self, funcname, *params, **options ):
+        # Default options
         if funcname not in self.pluginFuncs:
+            firstOnly=options.get('firstOnly',False)
+            firstTrue=options.get('firstTrue',False)
             funcs=[
                 gettattr(p,funcname,None) for p in self.plugins
-                if getattr(p,funcname,None) is not None 
+                if getattr(p,funcname,None) is not None and callable(gettattr(p,funcname))
                 ]
-            self.pluginFuncs[funcname]=funcs if len(funcs) > 0 else None
+            if options.get('reverse',False):
+                funcs.reverse()
+            if firstOnly:
+                funcdef=funcs[0]
+            elif firstTrue:
+                def funcdef( *params ):
+                    for f in funcs:
+                        result=f(*params)
+                        if result is not None and result is not False:
+                            return result
+                    return
+            else:
+                funcdef=lambda *params: [f(*params) for f in funcs]
+            self.pluginFuncs[funcname]=funcdef
 
-        funcs=self.pluginFuncs[funcname]
-        if funcs is None:
-            return None
+        return self.pluginFuncs[funcname](*params)
+
+    def setupOptions(self, options):
+        '''
+        Setup options.  Installs adjustment options into an Options class
+        '''
+        options.setupOptions(
+            # File names
+            listingFile=None,
+            stationFile=None,
+            dataFiles=[],
+            outputStationFile=None,
+            outputResidualFile=None,
+
+            # Station options
+            fixedStations=[],
+            acceptStations=[],
+            rejectStations=[],
+            reweightObsType={},
+            ignoreMissingStations=False,
+            calcMissingCoords=False,
+            localGeoidModel=None,
+
+            # Adjustment options
+            maxIterations=10,
+            convergenceTolerance=0.0001,
+            adjustENU=False,
+            refractionCoefficient=0.075,
+
+            # Output options
+            verbose=False,
+
+            # Specific outputs - only apply if verbose is True
+            debugStationOffsets=False,
+            debugObservationEquations=False,
+            debugCalcMissingCoords=False,
+            )
+
+    def boolOption(self,value):
+        return 'yes'.startswith(value.lower())
+
+    def setConfigOption( self, item, value ):
+        # File names
+        item=item.lower()
+        value=value.strip()
+        if item == 'listing_file':
+            self.option.listingFile=value
+        elif item == 'coordinate_file':
+            self.option.stationFile=value
+        elif item == 'data_file':
+            self.option.dataFiles.append(value)
+        elif item == 'output_coordinate_file':
+            self.option.outputStationFile=value
+        elif item == 'residual_csv_file':
+            self.option.outputResidualFile=value
+
+        # Station selection
+        elif item == 'fix':
+            self.option.fixedStations.extend(value.split())
+        elif item == 'accept':
+            self.option.acceptStations.extend(value.split())
+        elif item == 'reject':
+            self.option.rejectStations.extend(value.split())
+        elif item == 'ignore_missing_stations':
+            self.option.ignoreMissingStations=self.boolOption(value)
+        elif item == 'calculate_missing_stations':
+            self.option.calcMissingCoords=self.boolOption(value)
+
+        # Geoid model
+        elif item == 'local_geoid':
+            try:
+                gparts=value.split()
+                code=gparts.pop(0)
+                geoidHeight,xi,eta=(float(v) for v in gparts[0:3])
+                range=float(gparts[4]) if len(gparts)==5 else None
+            except:
+                raise RuntimeError("Invalid local_geoid: "+value)
+            self.option.localGeoidModel={'code':code,'height':geoidHeight,'xi':xi,'eta':eta, 'range':range}
+
+        # Observation options
+        elif item == 'reweight_observation_type':
+            if value != '':
+                match=re.match(r'([a-z]{2})\s+(\d+(?:\.\d+)?)$',value,re.I)
+                if not match:
+                    raise RuntimeError('Invalid reweight_observation_type option: '+value)
+                typecode=match.group(1).upper()
+                factor=float(match.group(2))
+                self.option.reweightObsType[typecode]=factor
+
+        # Adjustment options
+        elif item == 'convergence_tolerance':
+            self.option.convergenceTolerance=float(value)
+        elif item == 'max_iterations':
+            self.option.maxIterations=int(value)
+        elif item == 'adjust_enu':
+            self.option.adjustENU=self.boolOption(value)
+        elif item == 'refraction_coefficient':
+            self.option.refractionCoefficient=float(value)
+
+        # Output options
+        elif item == 'verbose':
+            self.option.verbose=self.boolOption(value)
+
+        # Debug options
+        elif item == 'debug_observation_equations':
+            self.option.debugObservationEquations=self.boolOption(value)
+        elif item == 'debug_station_offsets':
+            self.option.debugStationOffsets=self.boolOption(value)
+        elif item == 'debug_calculate_missing_stations':
+            self.option.debugCalcMissingCoords=self.boolOption(value)
         else:
-            return [f(*params) for f in self.pluginFuncs[funcname]]
+            raise RuntimeError('Unrecognized configuration item: '+item+': '+value)
 
-    def defaultOptions():
-        return Options()
+    def loadConfigFile( self, config_file, write=None ):
+        cfg={}
+        with open(config_file) as cfgf:
+            for l in cfgf:
+                try:
+                    l=l.strip()
+                    if len(l)==0 or l.startswith('#'):
+                        continue
+                    try:
+                        parts=l.split(None,1)
+                        item=parts[0].lower()
+                        value=parts[1] if len(parts)==2 else 'y'
+                    except:
+                        raise RuntimeError("Invalid configuration line: ",l)
+                    self.runPluginFunction('setConfigOption',item,value,firstTrue=True)
+                except Exception as ex:
+                    if write is not None:
+                        write(ex.message)
+                    else:
+                        raise
 
     def write( self, message, debug=False ):
         if self.output is not None:
@@ -474,8 +521,6 @@ class Adjustment( object ):
 
         usedStations=self.usedStations(includeFixed=False)
 
-        self.runPluginFunction('setupStationCoordMapping')
-
         mapping=self.coordParamMapping
 
         adjustenu=self.options.adjustENU
@@ -541,13 +586,11 @@ class Adjustment( object ):
         setupStationCoordMapping()
 
         '''
-        self.runPluginFunction('setupParameters')
-        self.runPluginFunction('setupStationCoordMapping')
-        return self.setupStationCoordMapping()
+        self.runPluginFunction('setupStationCoordMapping',reverse=True)
 
     def setupNormalEquations( self ):
         self.initParameters()
-        self.setupParameters()
+        self.runPluginFunction('setupParameters')
         nprm=self.nparam
         self.solved=0
         self.N=np.zeros((nprm,nprm))
@@ -555,6 +598,9 @@ class Adjustment( object ):
         self.ssr=0.0
         self.nobs=0
         return nprm
+
+    def getStation( self, code ):
+        return self.stations.get(code)
 
     def calcStationOffsets( self, obs ):
         '''
@@ -566,25 +612,67 @@ class Adjustment( object ):
 
         Returns a list of entries, one for each observation value.  Each entry in the list
         has four values:
-            inst_offset    [de,dn,du] for instrument station
-            trgt_offset    [de,dn,du] for target station
-            inst_params    None or mapping of offset parameters to de,dn,du
-            trgt_params    None or mapping of offset parameters to de,dn,du
+            offsettype     eg Station.OFFSET_H, Station.OFFSET_ENU, ...
+            inst_offset    offset for instrument station
+            trgt_offset    offset for target station
+            inst_params    None or mapping of offset parameter(s) to offset value
+            trgt_params    None or mapping of offset parameter(s) to offset value
 
         Each set of parameters is defined by
             paramno: parameter number array - parameters used to define stations
-            denudp: (n,3) array defining differential of E,N,U against param
+            denudp: (n,3) array defining differential of E,N,U against n param.
+                    For Station.OFFSET_H this is (n)
+                    
 
         Subclasses can override for additional offsets.  Plugin offsets are added
         to form a total offset
         '''
-        offsets=[([0,0,o.insthgt],[0,0,o.trgthgt],None,None) for o in obs.obsvalues]
-        pluginOffsets=self.runPluginFunction('calcStationOffsets',obs)
-        if pluginOffsets:
-            for i,offset in enumerate(offsets):
-                offi,offt,doffi,dofft=offset
-                for poffset in pluginOffsets:
-                    poffi,pofft,dpoffi,dpofft=poffset[i]
+
+        offsets=[]
+        for o in obs.obsvalues:
+            offi=None
+            offt=None
+            if o.insthgt is not None and o.insthgt != 0.0:
+                offi=self.getStation(o.inststn).genu()[2]*o.instght
+            if o.trgthgt is not None and o.trgthgt != 0.0:
+                offt=self.getStation(o.trgtstn).genu()[2]*o.trgtght
+            offsets.append((Station.OFFSET_XYZ,offi,None,offt,None))
+
+    def convertOffsetToXYZ( self, obsvalue, offset ):
+        offsettype,offi,poffi,offt,pofft=offset
+        if offsettype==Station.OFFSET_XYZ:
+            return offset
+        result=[Station.OFFSET_XYZ]
+        for stn,offset,doffset in ((obsvalue.inststn,offi,poffi),(obsvalue.trgtstn,offt,pofft)):
+            if offset is None:
+                result.extend((None,None))
+                continue
+            if offsettype==Station.OFFSET_H:
+                offset=np.array((0.0,0.0,offset))
+                if doffset is not None:
+                    ddp=doffset[1]
+                    zero=np.zeros(n.shape)
+                    doffset[1]=np.array((zero,zero,ddp)).T
+            stn=self.getStation(stn)
+            enu=stn.enu() if offsettype==Station.OFFSET_ENU else stn.genu()
+            offset=offset.dot(enu)
+            if doffset is not None:
+                doffset[1]=doffset[1].dot(enu)
+            result.append(offset,doffset)
+        return result
+
+    def compileStationOffsets( self, obs ):
+        offsets=None
+        for poffsets in self.runPluginFunction('calcStationOffsets',obs):
+            if poffsets is None:
+                continue
+            compiled=[]
+            for i,obsvalue in enumerate(obs.obsvalues):
+                poffset=self.convertOffsetToXyz(obsvalue,poffsets[i])
+                if offsets is not None:
+                    offset=offsets[i]
+                    offi,offt,doffi,dofft=offset
+                    poffi,pofft,dpoffi,dpofft=poffset
                     if poffi is not None:
                         if offi is not None:
                             offi=np.add(offi,poffi)
@@ -607,7 +695,9 @@ class Adjustment( object ):
                             dofft[1]=np.vstack((dofft[1],dpofft[1]))
                         else:
                             dofft=dpofft
-                offsets[0]=(offi,offt,doffi,dofft)
+                    poffset=(Station.OFFSET_XYZ,offi,offt,doffi,dofft)
+                compiled.append(poffset)
+            offsets=compiled
         return offsets
 
     def observationEquation( self, obs ):
@@ -626,7 +716,7 @@ class Adjustment( object ):
         schreiber=None
         if diagonal:
             obscovar=np.zeros((nrow,1))
-        offsets=self.calcStationOffsets( obs )
+        offsets=self.compileStationOffsets( obs )
         for i,o in enumerate(obs.obsvalues):
             stf=self.stations.get(o.inststn)
             if stf is None:
@@ -636,11 +726,13 @@ class Adjustment( object ):
                 stt=self.stations.get(o.trgtstn)
                 if stt is None:
                     raise RuntimeError("Station "+o.trgtstn+" is not defined")
-            # Get ENU offsets and differential with respect to parameters
-            offi,offt,doffi,dofft=offsets[i]
+            # Get XYZ offsets and differential with respect to parameters
+            offsettype,offi,offt,doffi,dofft=offsets[i]
 
             # Calculate the observed value and its dependence on XYZ coordinates
-            calcval,ddxyz0,ddxyz1=obstype.calcobs(stf,trgtstn=stt,insthgt=offi,trgthgt=offt,refcoef=refcoef,ddxyz=True)
+            calcval,ddxyz0,ddxyz1=obstype.calcobs(
+                stf,trgtstn=stt,insthgt=offi,trgthgt=offt,refcoef=refcoef,
+                ddxyz=True,offsettype=offsettype)
 
             # Set up the observation residual and covariance
             i0=i*nval
@@ -665,7 +757,6 @@ class Adjustment( object ):
                 if doff is None:
                     continue
                 prms,dprm=doff
-                doffdxyz=dprm.dot(stn.genu())
                 obseq[i0:i1,prms]=dprm.dot(dxyz)
 
         # Need special handling for horizontal angles
@@ -938,8 +1029,6 @@ class Adjustment( object ):
 
         if self.options.outputStationFile is not None:
             self.stations.writeCsv(self.options.outputStationFile)
-
-        self.runPluginFunction('writeOutputFiles')
         
     def setupLocalGeoid( self, geoidModel ):
         refStationCode=geoidModel['code']
@@ -967,8 +1056,6 @@ class Adjustment( object ):
 
     def setup( self ):
         options=self.options
-        self.loadDataFiles()
-
         # Calculate missing stations
         if options.calcMissingCoords:
             from . import StationLocator
@@ -1001,14 +1088,7 @@ class Adjustment( object ):
                 self.filterObsByStation(remove=missing)
         self.filterObsByStation(keep=options.acceptStations,remove=options.rejectStations)
 
-        # Run any plugin setup functions
-
-        self.runPluginFunction('setup')
-
-        # Set up the normal equations
-        self.setupNormalEquations()
-
-    def run( self ):
+    def calculateSolution( self ):
         options=self.options
 
         self.setupParameters()
@@ -1033,45 +1113,72 @@ class Adjustment( object ):
         self.writeResidualSummary()
         self.runPluginFunction('report')
 
-def main(adjustment_class=Adjustment):
-    import argparse
-    import os.path
-    parser=argparse.ArgumentParser(description="Adjust network")
-    parser.add_argument('config_file',help="Adjustment definition file")
-    parser.add_argument('output_file',nargs='?',help="Output file - default is standard output")
-    parser.add_argument('-r','--residual_file',help="Residual CSV file")
-    parser.add_argument('-s','--output-coordinate-file',help="Output station CSV file")
-    parser.add_argument('-v','--verbose',action='store_true',help="Verbose output")
-    parser.add_argument('-c','--create',action='store_true',help="Create an example adjustment configuration file")
-    args=parser.parse_args()
+    def runSetup( self ):
+        self.loadDataFiles()
+        self.runPluginFunction('setup')
+        self.setupNormalEquations()
 
-    # Crude configuration file reading, parsed to a dictionary
-    # Multiple options compiled to '\n' separated string
-    # Blank options have value 'y'
+    def runCalculateSolution(self):
+        self.runPluginFunction('calculateSolution',firstOnly=True)
 
-    if args.create:
-        if os.path.exists(args.config_file):
-            print("Config file "+args.config_file+" already exists - not creating!")
-            sys.exit()
-        import inspect
-        source=inspect.getfile(adjustment_class)
-        source=os.path.splitext(source)[0]+'.adj'
-        if not os.path.exists(source):
-            print("Cannot find example configuration file :-(")
-            sys.exit()
-        with open(source) as sf, open(args.config_file,'w') as cf:
-            cf.write(sf.read())
+    def runOutputs(self):
+        self.runPluginFunction('report')
+        self.runPluginFunction('writeOutputFiles')
+
+    def run( self ):
+        self.runSetup()
+        self.runCalculateSolution()
+        self.runOutputs()
+
+    @classmethod
+    def main(plugins=None):
+        '''
+        Main function to run the adjustment
+
+        Optionally can take a list of plugin classes 
+        '''
+        import argparse
+        import os.path
+        parser=argparse.ArgumentParser(description="Adjust network")
+        parser.add_argument('config_file',help="Adjustment definition file")
+        parser.add_argument('output_file',nargs='?',help="Output file - default is standard output")
+        parser.add_argument('-r','--residual_file',help="Residual CSV file")
+        parser.add_argument('-s','--output-coordinate-file',help="Output station CSV file")
+        parser.add_argument('-v','--verbose',action='store_true',help="Verbose output")
+        parser.add_argument('-c','--create',action='store_true',help="Create an example adjustment configuration file")
+        args=parser.parse_args()
+
+        # Crude configuration file reading, parsed to a dictionary
+        # Multiple options compiled to '\n' separated string
+        # Blank options have value 'y'
+
+        plugins=plugins or []
+        if args.create:
+            if os.path.exists(args.config_file):
+                print("Config file "+args.config_file+" already exists - not creating!")
+                sys.exit()
+            import inspect
+            classes=[Adjustment]
+            classes.extend(plugins)
+            with open(args.config_file,'w') as cf:
+                spacer=''
+                for c in classes:
+                    source=inspect.getfile(adjustment_class)
+                    source=os.path.splitext(source)[0]+'.adj'
+                    if c==Adjustment and not os.path.exists(source):
+                        print("Cannot find example configuration file :-(")
+                        sys.exit()
+                    with open(source) as sf:
+                        cf.write(spacer)
+                        cf.write(sf.read())
+                    spacer="\n"
             print("Example configuration file "+args.config_file+" created.")
             sys.exit()
 
-    # Set up and run the adjustment
+        # Set up and run the adjustment
 
-    adj=adjustment_class(config_file=args.config_file,output_file=args.output_file,verbose=args.verbose)
-    adj.setup()
-    adj.writeObservationSummary()
-    adj.run()
-    adj.report()
-    adj.writeOutputFiles()
+        adj=Adjustment(plugins=plugins,config_file=args.config_file,output_file=args.output_file,verbose=args.verbose)
+        adj.run()
 
 if __name__=="__main__":
-    main(Adjustment)
+    Adjustment.main()

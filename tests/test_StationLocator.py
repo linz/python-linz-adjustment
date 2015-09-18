@@ -9,54 +9,9 @@ import numpy as np
 import os.path
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 import unittest
-from Geodetic import Station, Network, Observation, StationLocator
-from Geodetic.Observation import Observation as Obs, ObservationValue as ObsVal
+from Geodetic import Station, Network, StationLocator
 
-def HA( stfrom, targets, offset=0.0, error=0.001 ):
-    ha=Obs('HA')
-    refha=None
-    for stto in targets:
-        angle=stfrom.azimuthTo(stto)
-        if refha is None:
-            refha=angle-offset
-        angle=angle-refha
-        if angle < 0:
-            angle += 360.0
-        ha.addObservation(ObsVal(stfrom.code(),stto.code(),angle,error))
-    return ha
-
-def AZ(stfrom,stto,error=0.001):
-    angle=stfrom.azimuthTo(stto)
-    return Obs('AZ',obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error))
-
-def SD(stfrom,stto,error=0.001):
-    angle=stfrom.distanceTo(stto)
-    return Obs('SD',obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error))
-
-def ZD(stfrom,stto,error=0.001):
-    angle=stfrom.zenithDistanceTo(stto)
-    return Obs('ZD',obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error))
-
-def LV(stfrom,stto,error=0.001):
-    angle=stfrom.heightDifferenceTo(stto)
-    return Obs('LV',obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error))
-
-def GX(stfrom,error=0.001):
-    xyz=stfrom.xyz()
-    covar=np.identity(3)*error*error
-    obs=Obs('GX',obsvalue=ObsVal(stfrom.code(),value=xyz))
-    obs.setCovariance(covar)
-    return obs
-
-def Traverse( stations ):
-    obs=[]
-    for back,base,fore in zip(stations[:-2],stations[1:-1],stations[2:]):
-        obs.append(HA(base,[back,fore]))
-        obs.append(SD(base,back))
-        obs.append(SD(base,fore))
-        obs.append(ZD(base,back))
-        obs.append(ZD(base,fore))
-    return obs
+from createobs import HA, AZ, SD, ZD, LV, GX, Traverse
 
 class StationLocatorTestCase( unittest.TestCase ):
 
