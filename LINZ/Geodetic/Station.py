@@ -17,10 +17,10 @@ class Station( object ):
 
     _ellipsoid = Ellipsoid.GRS80
 
-    OFFSET_H=0
-    OFFSET_ENU=1
-    OFFSET_GENU=2
-    OFFSET_XYZ=3
+    OFFSET_H=1
+    OFFSET_ENU=2
+    OFFSET_GENU=3
+    OFFSET_XYZ=4
 
     def __init__( self, code, name=None, llh=None, xyz=None, xieta=None, geoidhgt=None ):
         '''
@@ -167,11 +167,11 @@ class Station( object ):
         diff=trgtstn.xyz(trgtofst, offsettype=offsettype) - self.xyz(instofst,offsettype=offsettype)
         if not ddxyz:
             return diff
-        return diff, -np.identity(3), np.identify(3)
+        return diff, -np.identity(3), np.identity(3)
 
     def distanceTo( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=None, ddxyz=False, offsettype=None ):
         '''
-        Calculate distance to antrgtstn point and optionally its 
+        Calculate distance to trgtstn point and optionally its 
         differentials wrt X,Y,Z coordinates of base point and target
         point
         '''
@@ -184,7 +184,7 @@ class Station( object ):
 
     def azimuthTo( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=None, ddxyz=False, geodetic=False, offsettype=None ):
         '''
-        Calculate bearing (degrees) to antrgtstn point and its 
+        Calculate bearing (degrees) to trgtstn point and its 
         differentials wrt X,Y,Z coordinates of base point and target
         point
         '''
@@ -209,7 +209,7 @@ class Station( object ):
 
     def zenithDistanceTo( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=0.0, ddxyz=False, offsettype=None ):
         '''
-        Calculate zenith distance (degrees) to antrgtstn point and 
+        Calculate zenith distance (degrees) to trgtstn point and 
         its differentials wrt X,Y,Z coordinates of base point and target
         point
         '''

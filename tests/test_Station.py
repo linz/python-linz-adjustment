@@ -10,7 +10,7 @@ import numpy as np
 from numpy import array
 from LINZ import fileunittest
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
+sys.path.insert(0,os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 from Geodetic import Station
 
 class StationTestCase( fileunittest.TestCase ):

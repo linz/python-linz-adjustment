@@ -19,6 +19,9 @@ class ObservationValue( object ):
         self.trgthgt=trgthgt
         self.attributes=attributes
 
+    def __repr__( self ):
+        return self.__str__()
+
     def __str__( self ):
         if isinstance(self.value,float):
             strobs="{0:.4f}".format(self.value)
@@ -89,6 +92,9 @@ class Observation( object ):
     def setCovariance( self, covar ):
         self.covariance=covar
         return self
+
+    def __repr__( self ):
+        return self.__str__()
 
     def __str__( self ):
         return "".join([self.obstype.code+","+str(o)+"\n" for o in self.obsvalues])

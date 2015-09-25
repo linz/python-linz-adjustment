@@ -33,31 +33,36 @@ class Options( object  ):
 
     '''
     def __init__(self,config_file=None):
-        self.values={}
+        self.__dict__['_values']={}
 
     def __getattr__( self, name ):
-        if name in self.values:
-            return self.values[name]
-        return object.__getattr__( name )
+        if not name.startswith('_') and name in self._values:
+            return self.__dict__['_values'][name]
+        raise KeyError(name)
 
     def __setattr__( self, name, value ):
-        if name in self.values:
-            return self.values[name]
+        if name.startswith("_"):
+            raise KeyError(name)
+        if name in self._values:
+            self._values[name]=value
+
+    def set( self, name, value ):
+        self.__setattr__(name,value)
 
     def setupOptions( self, **options ):
         '''
         Adds option and default values to the options array
         '''
-        self.values.update(options)
+        self._values.update(options)
 
-    def update( self, options ):
+    def update( self, options, addoptions=False ):
         '''
         Update options from options list, but only if the option is already defined.
         '''
         if isinstance (options,Options):
             options=options.values
         for k,v in options.iteritems():
-            if k in values:
+            if k in values or addoptions:
                 values[k]=v
             else:
                 raise KeyError(k)
@@ -70,6 +75,12 @@ class ObsEq( object ):
         self.obscovar=obscovar
         self.diagonal=obscovar.shape[1] == 1
         self.schreiber=schreiber
+
+class Plugin( object ):
+
+    def __init__( self, adjustment ):
+        self.adjustment=adjustment
+        self.options=adjustment.options
 
 class Adjustment( object ):
 
@@ -87,7 +98,7 @@ class Adjustment( object ):
 
     High level functions:
         setup*
-        calculateSolution**
+        calculateSolution*!
         report*
         writeOutputFiles*
 
@@ -97,27 +108,44 @@ class Adjustment( object ):
     applied indirectly via the coordParamMapping).
 
         setupParameters*
+        setupStationCoordMapping*!
         calcStationOffsets*
         observationEquation
         updateParameters
 
     The adjustment can also be modified by adding a plugin as a class which implements 
     any the functions marked with *.  Note that for the calculateSolution function only the last defined
-    plugin function will be used.  The parameters in the plugin function will be the same 
+    plugin function will be used.  
+
+    Additional plugin hooks are
+        setConfigOption!
+        preSetup!
+        postSetup
+        preSetupParameters!
+        postSetupParameters
+
+    The order in which plugins are loaded is defines the order in which the plugin hooks will be run.
+    The Adjustment class itself is the first plugin loaded.  Those functions marked with ! are run in
+    reverse order of loading.
+    
+    The parameters in the plugin function will be the same 
     for the corresponding Adjustment function.  
 
-        class Plugin:
+        class MyPlugin( Adjustment.Plugin ):
 
-            def __init__( self, adjustment ):
-                self.adjustment=adjustment
-                # If want to add adjustment options...
-                self.options=adjustment.options
-                self.options.setupOptions(
-                    option=value,
-                    option=value,...
+            # Optional plugin configuration 
+
+            def initPlugin( self ):
+                ....
+
+            def getOptions( self ):
+                return Adjustment.Options(
+                    item=value,
+                    ...
                     )
 
-            # Plugin function to use options from config file
+            # Plugin hook functions ...
+            # Reading configuration items
 
             def setConfigOption( self, item, value ):
                 if item=='opt1':
@@ -126,7 +154,7 @@ class Adjustment( object ):
                     ...
                 else:
                     return False
-                return True
+                return Truu
 
             # Other functions implemented by plugin
 
@@ -150,7 +178,7 @@ class Adjustment( object ):
         self.options=Options()
         self.setupOptions()
         if verbose:
-            options.set('verbose','yes')
+            self.options.verbose=True
         self.output=output_file
         self.parameters=[]
         self.plugins=[self]
@@ -168,28 +196,88 @@ class Adjustment( object ):
         if options is not None:
             self.options.update(options)
         if verbose:
-            options.set('verbose','yes')
+            self.options.verbose=True
+        self.openOutputFile( output_file )
+
+    def openOutputFile( self, output_file=None ):
         if output_file is None:
-            output_file = options.listingFile
+            output_file = self.options.listingFile
         if isinstance(output_file,basestring):
             output_file=open(output_file,"w")
         self.output=output_file
 
     def addPlugin( self, pluginClass ):
+        if not issubclass( pluginClass, Plugin ):
+            raise RuntimeError('Invalid Adjustment plugin class '+pluginClass.__name__)
+        for plugin in self.plugins:
+            if type(plugin) == pluginClass:
+                return
         plugin=pluginClass(self)
+        initfunc=getattr(plugin,'initPlugin',None)
+        if initfunc is not None and callable(initfunc):
+            initfunc()
+        optsfunc=getattr(plugin,'getOptions',None)
+        if optsfunc is not None and callable(optsfunc):
+            pluginopts=optsfunc()
+            self.options.update(pluginopts,addoptions=True)
         self.plugins.append(plugin)
         self.pluginFuncs={}
 
-    def runPluginFunction( self, funcname, *params, **options ):
+    def addPluginByName( self, pluginClassName ):
+        # Set preferred paths for plugins - first the current and second 
+        # the directory from which this module is loaded
+        name=pluginClassName
+        sys.path.insert(0,os.path.dirname(__file__))
+        sys.path.insert(0,'.')
+        module=None
+        try:
+            module=__import__(pluginClassName)
+        except ImportError:
+            pass
+        try:
+            pluginClassName=re.sub(r'((?:_|^)(\w)',lambda m: m.group(2).upper(),pluginClassName)
+            module=__import__(pluginClassName,fromlist=['*'])
+        except ImportError:
+            pass
+        sys.path.pop(0)
+        sys.path.pop(0)
+        if module is None:
+            raise RuntimeError('Cannot load Adjustment plugin module '+name)
+        added=False
+        for item in dir(module):
+            if item.startsWith('_'):
+                continue
+            if not inspect.isclass(item):
+                continue
+            if not issubclass(item,Plugin):
+                continue
+            self.addPlugin(item)
+            added=True
+        if not added:
+            raise RuntimeError('No Adjustment plugin found in module '+pluginClassName)
+
+    def getPluginFunction( self, funcname, *params, **options ):
         # Default options
         if funcname not in self.pluginFuncs:
+            prepost=options.pop('runPrePostFunctions',False)
+            reverse=options.get(reverse,False)
+            prefunc=None
+            postfunc=None
+            if prepost:
+                prefuncname=re.sub('^(.)',lambda m: 'pre'+m.group(1).upper())
+                options['reverse']=True
+                prefunc=self.getPluginFunction(prefuncname,*params,**options)
+                postfuncname=re.sub('^(.)',lambda m: 'post'+m.group(1).upper())
+                options['reverse']=False
+                postfunc=self.getPluginFunction(postfuncname,*params,**options)
+
             firstOnly=options.get('firstOnly',False)
             firstTrue=options.get('firstTrue',False)
             funcs=[
-                gettattr(p,funcname,None) for p in self.plugins
-                if getattr(p,funcname,None) is not None and callable(gettattr(p,funcname))
+                getattr(p,funcname,None) for p in self.plugins
+                if getattr(p,funcname,None) is not None and callable(getattr(p,funcname))
                 ]
-            if options.get('reverse',False):
+            if reverse:
                 funcs.reverse()
             if firstOnly:
                 funcdef=funcs[0]
@@ -202,15 +290,21 @@ class Adjustment( object ):
                     return
             else:
                 funcdef=lambda *params: [f(*params) for f in funcs]
-            self.pluginFuncs[funcname]=funcdef
+            if prepost
+                funcdef=lambda *params: [prefunc(*params),funcdef(*params),postfunc(*params)]
 
-        return self.pluginFuncs[funcname](*params)
+        self.pluginFuncs[funcname]=funcdef
+        return funcdef
 
-    def setupOptions(self, options):
+    def runPluginFunction( self, funcname, *params, **options ):
+        funcdef=self.getPluginFunction(funcname,options)
+        return funcdef(*params)
+
+    def setupOptions(self):
         '''
         Setup options.  Installs adjustment options into an Options class
         '''
-        options.setupOptions(
+        self.options.setupOptions(
             # File names
             listingFile=None,
             stationFile=None,
@@ -225,7 +319,6 @@ class Adjustment( object ):
             reweightObsType={},
             ignoreMissingStations=False,
             calcMissingCoords=False,
-            localGeoidModel=None,
 
             # Adjustment options
             maxIterations=10,
@@ -246,42 +339,34 @@ class Adjustment( object ):
         return 'yes'.startswith(value.lower())
 
     def setConfigOption( self, item, value ):
-        # File names
         item=item.lower()
         value=value.strip()
-        if item == 'listing_file':
-            self.option.listingFile=value
+        # Plugins
+        if item == 'use_plugin':
+            self.addPluginByName( value )
+        # File names
+        elif item == 'listing_file':
+            self.options.listingFile=value
         elif item == 'coordinate_file':
-            self.option.stationFile=value
+            self.options.stationFile=value
         elif item == 'data_file':
-            self.option.dataFiles.append(value)
+            self.options.dataFiles.append(value)
         elif item == 'output_coordinate_file':
-            self.option.outputStationFile=value
+            self.options.outputStationFile=value
         elif item == 'residual_csv_file':
-            self.option.outputResidualFile=value
+            self.options.outputResidualFile=value
 
         # Station selection
         elif item == 'fix':
-            self.option.fixedStations.extend(value.split())
+            self.options.fixedStations.extend(value.split())
         elif item == 'accept':
-            self.option.acceptStations.extend(value.split())
+            self.options.acceptStations.extend(value.split())
         elif item == 'reject':
-            self.option.rejectStations.extend(value.split())
+            self.options.rejectStations.extend(value.split())
         elif item == 'ignore_missing_stations':
-            self.option.ignoreMissingStations=self.boolOption(value)
+            self.options.ignoreMissingStations=self.boolOption(value)
         elif item == 'calculate_missing_stations':
-            self.option.calcMissingCoords=self.boolOption(value)
-
-        # Geoid model
-        elif item == 'local_geoid':
-            try:
-                gparts=value.split()
-                code=gparts.pop(0)
-                geoidHeight,xi,eta=(float(v) for v in gparts[0:3])
-                range=float(gparts[4]) if len(gparts)==5 else None
-            except:
-                raise RuntimeError("Invalid local_geoid: "+value)
-            self.option.localGeoidModel={'code':code,'height':geoidHeight,'xi':xi,'eta':eta, 'range':range}
+            self.options.calcMissingCoords=self.boolOption(value)
 
         # Observation options
         elif item == 'reweight_observation_type':
@@ -291,29 +376,29 @@ class Adjustment( object ):
                     raise RuntimeError('Invalid reweight_observation_type option: '+value)
                 typecode=match.group(1).upper()
                 factor=float(match.group(2))
-                self.option.reweightObsType[typecode]=factor
+                self.options.reweightObsType[typecode]=factor
 
         # Adjustment options
         elif item == 'convergence_tolerance':
-            self.option.convergenceTolerance=float(value)
+            self.options.convergenceTolerance=float(value)
         elif item == 'max_iterations':
-            self.option.maxIterations=int(value)
+            self.options.maxIterations=int(value)
         elif item == 'adjust_enu':
-            self.option.adjustENU=self.boolOption(value)
+            self.options.adjustENU=self.boolOption(value)
         elif item == 'refraction_coefficient':
-            self.option.refractionCoefficient=float(value)
+            self.options.refractionCoefficient=float(value)
 
         # Output options
         elif item == 'verbose':
-            self.option.verbose=self.boolOption(value)
+            self.options.verbose=self.boolOption(value)
 
         # Debug options
         elif item == 'debug_observation_equations':
-            self.option.debugObservationEquations=self.boolOption(value)
+            self.options.debugObservationEquations=self.boolOption(value)
         elif item == 'debug_station_offsets':
-            self.option.debugStationOffsets=self.boolOption(value)
+            self.options.debugStationOffsets=self.boolOption(value)
         elif item == 'debug_calculate_missing_stations':
-            self.option.debugCalcMissingCoords=self.boolOption(value)
+            self.options.debugCalcMissingCoords=self.boolOption(value)
         else:
             raise RuntimeError('Unrecognized configuration item: '+item+': '+value)
 
@@ -331,7 +416,7 @@ class Adjustment( object ):
                         value=parts[1] if len(parts)==2 else 'y'
                     except:
                         raise RuntimeError("Invalid configuration line: ",l)
-                    self.runPluginFunction('setConfigOption',item,value,firstTrue=True)
+                    self.runPluginFunction('setConfigOption',item,value,firstTrue=True,reverse=True)
                 except Exception as ex:
                     if write is not None:
                         write(ex.message)
@@ -590,7 +675,7 @@ class Adjustment( object ):
 
     def setupNormalEquations( self ):
         self.initParameters()
-        self.runPluginFunction('setupParameters')
+        self.runPluginFunction('setupParameters',runPrePostFunctions=True)
         nprm=self.nparam
         self.solved=0
         self.N=np.zeros((nprm,nprm))
@@ -633,10 +718,11 @@ class Adjustment( object ):
             offi=None
             offt=None
             if o.insthgt is not None and o.insthgt != 0.0:
-                offi=self.getStation(o.inststn).genu()[2]*o.instght
+                offi=self.getStation(o.inststn).genu()[2]*o.insthgt
             if o.trgthgt is not None and o.trgthgt != 0.0:
-                offt=self.getStation(o.trgtstn).genu()[2]*o.trgtght
-            offsets.append((Station.OFFSET_XYZ,offi,None,offt,None))
+                offt=self.getStation(o.trgtstn).genu()[2]*o.trgthgt
+            offsets.append((Station.OFFSET_XYZ,offi,offt,None,None))
+        return offsets
 
     def convertOffsetToXYZ( self, obsvalue, offset ):
         offsettype,offi,poffi,offt,pofft=offset
@@ -668,7 +754,7 @@ class Adjustment( object ):
                 continue
             compiled=[]
             for i,obsvalue in enumerate(obs.obsvalues):
-                poffset=self.convertOffsetToXyz(obsvalue,poffsets[i])
+                poffset=self.convertOffsetToXYZ(obsvalue,poffsets[i])
                 if offsets is not None:
                     offset=offsets[i]
                     offi,offt,doffi,dofft=offset
@@ -717,6 +803,8 @@ class Adjustment( object ):
         if diagonal:
             obscovar=np.zeros((nrow,1))
         offsets=self.compileStationOffsets( obs )
+        offsettype,offi,offt,doffi,dofft=Station.OFFSET_XYZ,None,None,None,None
+
         for i,o in enumerate(obs.obsvalues):
             stf=self.stations.get(o.inststn)
             if stf is None:
@@ -727,11 +815,12 @@ class Adjustment( object ):
                 if stt is None:
                     raise RuntimeError("Station "+o.trgtstn+" is not defined")
             # Get XYZ offsets and differential with respect to parameters
-            offsettype,offi,offt,doffi,dofft=offsets[i]
+            if offsets is not None:
+                offsettype,offi,offt,doffi,dofft=offsets[i]
 
             # Calculate the observed value and its dependence on XYZ coordinates
             calcval,ddxyz0,ddxyz1=obstype.calcobs(
-                stf,trgtstn=stt,insthgt=offi,trgthgt=offt,refcoef=refcoef,
+                stf,trgtstn=stt,instofst=offi,trgtofst=offt,refcoef=refcoef,
                 ddxyz=True,offsettype=offsettype)
 
             # Set up the observation residual and covariance
@@ -1029,30 +1118,6 @@ class Adjustment( object ):
 
         if self.options.outputStationFile is not None:
             self.stations.writeCsv(self.options.outputStationFile)
-        
-    def setupLocalGeoid( self, geoidModel ):
-        refStationCode=geoidModel['code']
-        refStation=self.stations.get( geoidModel['code'] )
-        if refStation is None:
-            raise RuntimeError("Local geoid model reference station {0} is not defined"
-                               .format(refStationCode))
-        gheight=geoidModel['height']
-        xi=geoidModel['xi']/3600.0
-        eta=geoidModel['eta']/3600.0
-        xirad=math.radians(xi)
-        etarad=math.radians(eta)
-        range=geoidModel.get('range')
-        if range is not None:
-            range = range*range
-
-        xyz0=refStation.xyz()
-        enu_axes=refStation.enu()
-
-        for s in self.network.stations:
-            denu=enu.dot(s.xyz()-xyz0)
-            if range is not None and (denu[0]*denu[0]+denu[1]*denu[1]) > range:
-                continue
-            s.setXiEta([xi,eta])
 
     def setup( self ):
         options=self.options
@@ -1069,18 +1134,10 @@ class Adjustment( object ):
                 self.write("\nApproximate coordinates calculated for {0} stations\n"
                            .format(nupdated))
 
-        # Apply a geoid model
-        if options.localGeoidModel is not None:
-            gm=options.localGeoidModel
-            code=gm['code']
-            geoidHeight=gm['height']
-            xieta=[gm['xi']/3600.0,gm['eta']/3600.0]
-            range=gm['range']
-            self.stations.setLocalGeoid(code,geoidHeight,xieta,range)
-
     def ignoreMissingStations( self ):
         # Deal with missing stations
-        if self.options.ignoreMissingStations:
+        options=self.options
+        if options.ignoreMissingStations:
             missing=self.missingStationList()
             if len(missing) > 0:
                 self.write("Ignoring missing stations:\n")
@@ -1092,7 +1149,7 @@ class Adjustment( object ):
     def calculateSolution( self ):
         options=self.options
 
-        self.setupParameters()
+        self.setupNormalEquations()
         self.write("\nCalculating {0} parameters\n".format(self.nparam))
 
         if self.options.debugObservationEquations:
@@ -1112,16 +1169,15 @@ class Adjustment( object ):
     def report(self):
         self.writeSummaryStats()
         self.writeResidualSummary()
-        self.runPluginFunction('report')
 
     def runSetup( self ):
         self.loadDataFiles()
-        self.runPluginFunction('setup')
+        self.runPluginFunction('setup',runPrePostFunctions=True)
         self.ignoreMissingStations()
         self.setupNormalEquations()
 
     def runCalculateSolution(self):
-        self.runPluginFunction('calculateSolution',firstOnly=True)
+        self.runPluginFunction('calculateSolution',firstOnly=True,reverse=True)
 
     def runOutputs(self):
         self.runPluginFunction('report')

@@ -53,13 +53,6 @@ reweight_observation_type LV 1.6
 reweight_observation_type SD 0.5
 reweight_observation_type ZD 2.0
 
-
-# Definition of a local geoid model - defined by a geoid height and 
-# xi,eta.  Also optionally a range beyond which it is ignored
-# (provided to avoid applying to remote GNSS reference stations)
-
-local_geoid WARK 36.047 -7.7 -5.1 20000
-
 # Refraction correction (applied only to zenith distance obs)
 
 refraction_coefficient 0.075

@@ -1,0 +1,16 @@
+# ========================================================
+# Local geoid model parameters
+#
+
+use_plugin local_geoid_model
+
+# Define the geoid height and deflection of vertical at a reference
+# station from which it will be interpolated.
+#
+# geoid height in metres
+# xi, eta in seconds
+# range maximum distance from reference station that model is used (metres)
+#
+# local_geoid ref_station geoid_height xi eta [range]
+
+
