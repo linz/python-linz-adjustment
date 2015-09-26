@@ -1,0 +1,138 @@
+======================================================================
+>>>> test_1__output 
+Observation files:
+
+Calculating 3 parameters
+Iteration 0: max coord change 1.1576m at ST2
+Iteration 1: max coord change 0.0000m at ST2
+
+Sum of squared residuals:     0.000001
+Number of parameters:         3
+Number of observations:       4
+Degrees of freedom:           1
+Standard error of unit weight 0.0010
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  AZ            0   1.0000
+  LV            1   0.0006
+  SD            0   1.0000
+  ZD            1   0.0000
+
+>>>> test_1__obs [AZ,ST1,ST2,0.0000,0.0000,54.2295,0.0010
+, SD,ST1,ST2,0.0000,0.0000,34118.6250,0.0010
+, ZD,ST1,ST2,0.0000,0.0000,90.1364,0.0010
+, LV,ST1,ST2,0.0000,0.0000,10.0000,0.0010
+]
+>>>> test_1__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_1__station_st2_coordinates array([ 171.35        ,  -44.82        ,   20.0000000009])
+>>>>
+======================================================================
+>>>> test_2__output 
+Observation files:
+
+Calculating 3 parameters
+Iteration 0: max coord change 1.1576m at ST1
+Iteration 1: max coord change 0.0000m at None
+
+Sum of squared residuals:     0.000000
+Number of parameters:         3
+Number of observations:       3
+Degrees of freedom:           0
+Standard error of unit weight 1.0000
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  GX            0   1.0000
+
+>>>> test_2__obs [GX,ST1,None,0.0000,0.0000,[-4461978.82267,706708.01857,-4487355.47982],None
+]
+>>>> test_2__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>>
+======================================================================
+>>>> test_3__output 
+Observation files:
+
+Calculating 3 parameters
+Iteration 0: max coord change 1.1576m at ST2
+Iteration 1: max coord change 0.0000m at None
+
+Sum of squared residuals:     0.000000
+Number of parameters:         3
+Number of observations:       3
+Degrees of freedom:           0
+Standard error of unit weight 1.0000
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  GB            0   1.0000
+
+>>>> test_3__obs [GB,ST1,ST2,0.0000,0.0000,[-18202.45761,-25144.65572,14159.71038],None
+]
+>>>> test_3__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_3__station_st2_coordinates array([ 171.35,  -44.82,   20.  ])
+>>>>
+======================================================================
+>>>> test_4__output 
+Observation files:
+
+Calculating 3 parameters
+Iteration 0: max coord change 1.1573m at ST2
+Iteration 1: max coord change 0.0015m at ST2
+Iteration 2: max coord change 0.0000m at ST2
+
+Sum of squared residuals:     0.000000
+Number of parameters:         3
+Number of observations:       3
+Degrees of freedom:           0
+Standard error of unit weight 1.0000
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  HA            0   1.0000
+  SD            0   1.0000
+  ZD            0   1.0000
+
+>>>> test_4__obs [HA,ST2,ST1,0.0000,0.0000,0.0000,0.0010
+HA,ST2,ST3,0.0000,0.0000,67.4272,0.0010
+, SD,ST1,ST2,0.0000,0.0000,3408.7567,0.0010
+, ZD,ST1,ST2,0.0000,0.0000,89.8472,0.0010
+]
+>>>> test_4__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_4__station_st2_coordinates array([ 171.035       ,  -44.982       ,   20.0000000019])
+>>>> test_4__station_st3_coordinates array([ 171.012       ,  -44.972       ,   20.0000000009])
+>>>>
+======================================================================
+>>>> test_5__output 
+Observation files:
+
+Calculating 3 parameters
+Iteration 0: max coord change 1.1576m at ST2
+Iteration 1: max coord change 0.0000m at ST2
+
+Sum of squared residuals:     0.000000
+Number of parameters:         3
+Number of observations:       4
+Degrees of freedom:           1
+Standard error of unit weight 0.0003
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  AZ            0   1.0000
+  LV            1   0.0003
+  SD            0   1.0000
+  ZD            1   0.0001
+
+>>>> test_5__obs [AZ,ST1,ST2,2.5000,4.1000,54.2295,0.0010
+, SD,ST1,ST2,2.5000,-4.1000,34118.6194,0.0010
+, ZD,ST1,ST2,-2.5000,4.1000,90.1253,0.0010
+, LV,ST1,ST2,-2.5000,-4.1000,8.4000,0.0010
+]
+>>>> test_5__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_5__station_st2_coordinates array([ 171.35        ,  -44.82        ,   19.9999413984])
+>>>>

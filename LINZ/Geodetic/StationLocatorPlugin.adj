@@ -1,0 +1,10 @@
+
+use_plugin station_locator_plugin
+
+# Calculate missing stations
+
+# calculate_missing_stations yes
+
+# Output debug information for calculating missing stations
+
+# debug_calculate_missing_stations False

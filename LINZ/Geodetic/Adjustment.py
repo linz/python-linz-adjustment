@@ -318,7 +318,6 @@ class Adjustment( object ):
             rejectStations=[],
             reweightObsType={},
             ignoreMissingStations=False,
-            calcMissingCoords=False,
 
             # Adjustment options
             maxIterations=10,
@@ -332,7 +331,6 @@ class Adjustment( object ):
             # Specific outputs - only apply if verbose is True
             debugStationOffsets=False,
             debugObservationEquations=False,
-            debugCalcMissingCoords=False,
             )
 
     def boolOption(self,value):
@@ -365,8 +363,6 @@ class Adjustment( object ):
             self.options.rejectStations.extend(value.split())
         elif item == 'ignore_missing_stations':
             self.options.ignoreMissingStations=self.boolOption(value)
-        elif item == 'calculate_missing_stations':
-            self.options.calcMissingCoords=self.boolOption(value)
 
         # Observation options
         elif item == 'reweight_observation_type':
@@ -397,8 +393,6 @@ class Adjustment( object ):
             self.options.debugObservationEquations=self.boolOption(value)
         elif item == 'debug_station_offsets':
             self.options.debugStationOffsets=self.boolOption(value)
-        elif item == 'debug_calculate_missing_stations':
-            self.options.debugCalcMissingCoords=self.boolOption(value)
         else:
             raise RuntimeError('Unrecognized configuration item: '+item+': '+value)
 

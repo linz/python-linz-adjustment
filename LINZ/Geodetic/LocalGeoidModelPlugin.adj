@@ -2,7 +2,7 @@
 # Local geoid model parameters
 #
 
-use_plugin local_geoid_model
+use_plugin local_geoid_model_plugin
 
 # Define the geoid height and deflection of vertical at a reference
 # station from which it will be interpolated.
