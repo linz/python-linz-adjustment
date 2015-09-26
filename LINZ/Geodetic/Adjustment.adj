@@ -36,10 +36,6 @@ residual_csv_file wark2015lt-residuals.csv
 
 # ignore_missing_stations yes
 
-# Calculate missing stations
-
-calculate_missing_stations yes
-
 #=============================================================
 # Adjustment model set up 
 
@@ -76,5 +72,4 @@ verbose yes
 # Debug options write extra information to the listing file
 debug_observation_equations False
 debug_station_offsets False
-debug_calculate_missing_stations False
 
