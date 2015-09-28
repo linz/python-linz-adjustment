@@ -23,8 +23,9 @@ class Network:
         self._index={}
         self._geodeticCsv=None
 
-    def addStation( self, stn ):
-        self._index[stn.code()]=stn
+    def addStation( self, *stations ):
+        for stn in stations:
+            self._index[stn.code()]=stn
 
     def loadCsv( self, csvfile, colnames=None ):
         '''
@@ -118,30 +119,3 @@ class Network:
     def stations( self ):
         for code in sorted(self._index.keys()):
             yield self._index[code]
-        
-    def setLocalGeoid( self, code, geoidHeight, xieta, range=None ):
-        '''
-        Applies a local geoid model to the stations.  The model is defined
-        by a geoid height and deflection at one of the marks.  Optionally 
-        define a range beyond which the model is not defined.
-        '''
-        refStation=self.get(code)
-        if refStation is None:
-            raise RuntimeError("Local geoid model reference station {0} is not defined"
-                               .format(code))
-
-        xyz0=refStation.xyz()
-        enu=refStation.enu()
-
-        range2=None if range is None else range*range
-        # Note slope is dh/dn, dh/de as xieta are ordered lat,lon
-        slope=-np.radians(xieta)
-
-        for s in self.stations():
-            offset=s.xyz()-xyz0
-            denu=enu.dot(offset)
-            if range is not None and (denu[0]*denu[0]+denu[1]*denu[1]) > range:
-                continue
-            ghgt=geoidHeight+slope.dot((denu[1],denu[0]))
-            s.setXiEta(xieta)
-            s.setGeoidHeight(ghgt)

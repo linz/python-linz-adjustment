@@ -57,7 +57,7 @@ class Station( object ):
         Set the north (xi) and east (eta)  deflection of the vertical
         (in degrees)
         '''
-        self._xieta=xieta or [0.0,0.0]
+        self._xieta=[0.0,0.0] if xieta is None else xieta
         if self._xyz is not None:
             self.setXYZ( self._xyz )
 

@@ -4,15 +4,15 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from .Adjustment import Plugin, Options
+from .Adjustment import Plugin
 from . import StationLocator
 
 class StationLocatorPlugin( Plugin ):
 
-    def getOptions():
-        return Options(
-            calcMissingCoords: False,
-            debugCalcMissingCoords: False
+    def pluginOptions( self ):
+        return dict(
+            calcMissingCoords=False,
+            debugCalcMissingCoords=False
         );
 
     def setConfigOption( self, item, value ):
@@ -29,12 +29,15 @@ class StationLocatorPlugin( Plugin ):
         # Calculate missing stations
         if options.calcMissingCoords:
             from . import StationLocator
-            debug=options.debugCalcMissingCoords
+            adjustment=self.adjustment
             write=None
-            if debug:
-                write=self.write
+            if options.debugCalcMissingCoords:
+                write=adjustment.write
                 write("\nCalculating missing station coordinates\n")
-            nupdated=StationLocator.locateStations(self.stations,self.observations,write)
+            nupdated=StationLocator.locateStations(
+                adjustment.stations,
+                adjustment.observations,
+                write)
             if nupdated > 0:
-                self.write("\nApproximate coordinates calculated for {0} stations\n"
+                adjustment.write("\nApproximate coordinates calculated for {0} stations\n"
                            .format(nupdated))

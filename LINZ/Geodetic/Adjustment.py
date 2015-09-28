@@ -7,6 +7,8 @@ from __future__ import unicode_literals
 
 import sys
 import math
+import inspect
+import os.path
 from collections import namedtuple
 import re
 import numpy as np
@@ -62,8 +64,8 @@ class Options( object  ):
         if isinstance (options,Options):
             options=options.values
         for k,v in options.iteritems():
-            if k in values or addoptions:
-                values[k]=v
+            if k in self._values or addoptions:
+                self._values[k]=v
             else:
                 raise KeyError(k)
 
@@ -138,8 +140,8 @@ class Adjustment( object ):
             def initPlugin( self ):
                 ....
 
-            def getOptions( self ):
-                return Adjustment.Options(
+            def pluginOptions( self ):
+                return dict(
                     item=value,
                     ...
                     )
@@ -154,7 +156,7 @@ class Adjustment( object ):
                     ...
                 else:
                     return False
-                return Truu
+                return True
 
             # Other functions implemented by plugin
 
@@ -187,7 +189,7 @@ class Adjustment( object ):
         # Each plugin is added before reading configuration
         if plugins is not None:
             for plugin in plugins:
-                self.addPlugin( plugins )
+                self.addPluginClass( plugin )
         self.solved=0
 
         # Setup configuration
@@ -206,7 +208,7 @@ class Adjustment( object ):
             output_file=open(output_file,"w")
         self.output=output_file
 
-    def addPlugin( self, pluginClass ):
+    def addPluginClass( self, pluginClass ):
         if not issubclass( pluginClass, Plugin ):
             raise RuntimeError('Invalid Adjustment plugin class '+pluginClass.__name__)
         for plugin in self.plugins:
@@ -216,60 +218,83 @@ class Adjustment( object ):
         initfunc=getattr(plugin,'initPlugin',None)
         if initfunc is not None and callable(initfunc):
             initfunc()
-        optsfunc=getattr(plugin,'getOptions',None)
+        optsfunc=getattr(plugin,'pluginOptions',None)
         if optsfunc is not None and callable(optsfunc):
             pluginopts=optsfunc()
             self.options.update(pluginopts,addoptions=True)
+        self.addPlugin( plugin )
+
+    def addPlugin( self, plugin ):
         self.plugins.append(plugin)
         self.pluginFuncs={}
 
-    def addPluginByName( self, pluginClassName ):
-        # Set preferred paths for plugins - first the current and second 
-        # the directory from which this module is loaded
-        name=pluginClassName
-        sys.path.insert(0,os.path.dirname(__file__))
-        sys.path.insert(0,'.')
+    def addPluginClassByName( self, pluginClassName ):
+        # Two possible names for plugin module, one as entered and one
+        # converted to mixed case.  To support consistency in configuration
+        # file parameters using underscore separator.
+
+        origname=pluginClassName
+        altname=re.sub(r'(?:_|^)(\w)',lambda m: m.group(1).upper(),pluginClassName)
+
+        # Try first for module in the path of the script
+        path0=os.path.dirname(os.path.abspath(sys.argv[0]))
+
+        # Then in the Adjustment directory.  Search relative to the
+        # base directory
+        adjmodpath=os.path.dirname(os.path.abspath(__file__))
+        path1=os.path.dirname(adjmodpath)
+        basemod=os.path.basename(adjmodpath)
         module=None
-        try:
-            module=__import__(pluginClassName)
-        except ImportError:
-            pass
-        try:
-            pluginClassName=re.sub(r'((?:_|^)(\w)',lambda m: m.group(2).upper(),pluginClassName)
-            module=__import__(pluginClassName,fromlist=['*'])
-        except ImportError:
-            pass
-        sys.path.pop(0)
-        sys.path.pop(0)
+        for name in [origname,altname]:
+            sys.path.insert(0,path0)
+            sys.path.insert(0,'.')
+            try:
+                module=__import__(name,fromlist=['*'])
+            except ImportError:
+                pass
+            sys.path.pop(0)
+            if module is not None:
+                break
+            sys.path.insert(0,path1)
+            try:
+                module=__import__(basemod+'.'+name,fromlist=['*'])
+            except ImportError:
+                pass
+            sys.path.pop(0)
+            if module is not None:
+                break
         if module is None:
             raise RuntimeError('Cannot load Adjustment plugin module '+name)
         added=False
         for item in dir(module):
-            if item.startsWith('_'):
+            if item.startswith('_'):
                 continue
-            if not inspect.isclass(item):
+            value=getattr(module,item)
+            if not inspect.isclass(value):
                 continue
-            if not issubclass(item,Plugin):
+            if not issubclass(value,Plugin):
                 continue
-            self.addPlugin(item)
+            if value == Plugin:
+                continue
+            self.addPluginClass(value)
             added=True
         if not added:
             raise RuntimeError('No Adjustment plugin found in module '+pluginClassName)
 
-    def getPluginFunction( self, funcname, *params, **options ):
+    def getPluginFunction( self, funcname, **options ):
         # Default options
         if funcname not in self.pluginFuncs:
             prepost=options.pop('runPrePostFunctions',False)
-            reverse=options.get(reverse,False)
+            reverse=options.get('reverse',False)
             prefunc=None
             postfunc=None
             if prepost:
-                prefuncname=re.sub('^(.)',lambda m: 'pre'+m.group(1).upper())
+                prefuncname=re.sub('^(.)',lambda m: 'pre'+m.group(1).upper(),funcname)
                 options['reverse']=True
-                prefunc=self.getPluginFunction(prefuncname,*params,**options)
-                postfuncname=re.sub('^(.)',lambda m: 'post'+m.group(1).upper())
+                prefunc=self.getPluginFunction(prefuncname,**options)
+                postfuncname=re.sub('^(.)',lambda m: 'post'+m.group(1).upper(),funcname)
                 options['reverse']=False
-                postfunc=self.getPluginFunction(postfuncname,*params,**options)
+                postfunc=self.getPluginFunction(postfuncname,**options)
 
             firstOnly=options.get('firstOnly',False)
             firstTrue=options.get('firstTrue',False)
@@ -290,14 +315,15 @@ class Adjustment( object ):
                     return
             else:
                 funcdef=lambda *params: [f(*params) for f in funcs]
-            if prepost
-                funcdef=lambda *params: [prefunc(*params),funcdef(*params),postfunc(*params)]
+            if prepost:
+                impfunc=funcdef
+                funcdef=lambda *params: [prefunc(*params),impfunc(*params),postfunc(*params)]
+            self.pluginFuncs[funcname]=funcdef
 
-        self.pluginFuncs[funcname]=funcdef
-        return funcdef
+        return self.pluginFuncs[funcname]
 
     def runPluginFunction( self, funcname, *params, **options ):
-        funcdef=self.getPluginFunction(funcname,options)
+        funcdef=self.getPluginFunction(funcname,**options)
         return funcdef(*params)
 
     def setupOptions(self):
@@ -341,7 +367,7 @@ class Adjustment( object ):
         value=value.strip()
         # Plugins
         if item == 'use_plugin':
-            self.addPluginByName( value )
+            self.addPluginClassByName( value )
         # File names
         elif item == 'listing_file':
             self.options.listingFile=value
@@ -396,6 +422,13 @@ class Adjustment( object ):
         else:
             raise RuntimeError('Unrecognized configuration item: '+item+': '+value)
 
+    def setConfig( self, item, value ):
+        '''
+        Set a configuration option based on the text item/value read from a 
+        configuration file
+        '''
+        self.runPluginFunction('setConfigOption',item,value,firstTrue=True,reverse=True)
+
     def loadConfigFile( self, config_file, write=None ):
         cfg={}
         with open(config_file) as cfgf:
@@ -410,7 +443,7 @@ class Adjustment( object ):
                         value=parts[1] if len(parts)==2 else 'y'
                     except:
                         raise RuntimeError("Invalid configuration line: ",l)
-                    self.runPluginFunction('setConfigOption',item,value,firstTrue=True,reverse=True)
+                    self.setConfig( item, value )
                 except Exception as ex:
                     if write is not None:
                         write(ex.message)
@@ -442,8 +475,11 @@ class Adjustment( object ):
                 self.write("  Observation type {0} errors scaled by {1:6.3f}\n"
                            .format(otype,reweight[otype]))
 
-        self.write("\nObservation files:\n")
+        first=True
         for obsfile in self.options.dataFiles:
+            if first:
+                self.write("\nObservation files:\n")
+                first=False
             self.write("  {0}\n".format(obsfile))
             if obsfile.lower().endswith('.msr'):
                 from . import MsrFile
@@ -1114,19 +1150,7 @@ class Adjustment( object ):
             self.stations.writeCsv(self.options.outputStationFile)
 
     def setup( self ):
-        options=self.options
-        # Calculate missing stations
-        if options.calcMissingCoords:
-            from . import StationLocator
-            debug=options.debugCalcMissingCoords
-            write=None
-            if debug:
-                write=self.write
-                write("\nCalculating missing station coordinates\n")
-            nupdated=StationLocator.locateStations(self.stations,self.observations,write)
-            if nupdated > 0:
-                self.write("\nApproximate coordinates calculated for {0} stations\n"
-                           .format(nupdated))
+        pass
 
     def ignoreMissingStations( self ):
         # Deal with missing stations

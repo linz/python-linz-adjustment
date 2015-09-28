@@ -21,7 +21,7 @@ class AdjustmentTestCase( fileunittest.TestCase ):
     def offsetStation( self, st, dxyz ):
         st.setXYZ( st.xyz() + dxyz )
 
-    def runAdjustment( self, test, adj ):
+    def runAdjustment( self, test, adj, checkListing=True, checkGeoid=False ):
         outputfile=StringIO.StringIO()
         try:
             oldio=sys.stdout
@@ -31,10 +31,15 @@ class AdjustmentTestCase( fileunittest.TestCase ):
             sys.stdout=oldio
             output=outputfile.getvalue()
             outputfile.close()
-        self.check(test+': Output',output)
+        if checkListing:
+            self.check(test+': Output',output)
         self.check(test+': Obs',adj.observations)
         for s in adj.stations.stations():
             self.check(test+': Station {0} coordinates'.format(s.code()),s.llh())
+            if checkGeoid:
+                grav=list(s.xieta())
+                grav.append(s.geoidHeight())
+                self.check(test+': Station {0} geoid'.format(s.code()),grav)
 
 
     def test_001_basic_offset( self ):
@@ -53,8 +58,8 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         net.addStation(st1)
         net.addStation(st2)
         adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
-        adj.setConfigOption('fix','ST1')
-        adj.setConfigOption('refraction_coefficient','0.0')
+        adj.setConfig('fix','ST1')
+        adj.setConfig('refraction_coefficient','0.0')
         self.runAdjustment('Test 1',adj)
 
     def test_002_gx( self ):
@@ -83,8 +88,8 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         net.addStation(st1)
         net.addStation(st2)
         adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
-        adj.setConfigOption('fix','ST1')
-        adj.setConfigOption('refraction_coefficient','0.0')
+        adj.setConfig('fix','ST1')
+        adj.setConfig('refraction_coefficient','0.0')
         self.runAdjustment('Test 3',adj)
 
     def test_004_ha( self ):
@@ -104,9 +109,9 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         net.addStation(st2)
         net.addStation(st3)
         adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
-        adj.setConfigOption('fix','ST1')
-        adj.setConfigOption('fix','ST3')
-        adj.setConfigOption('refraction_coefficient','0.0')
+        adj.setConfig('fix','ST1')
+        adj.setConfig('fix','ST3')
+        adj.setConfig('refraction_coefficient','0.0')
         self.runAdjustment('Test 4',adj)
 
     def test_005_basic_offset( self ):
@@ -125,9 +130,74 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         net.addStation(st1)
         net.addStation(st2)
         adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
-        adj.setConfigOption('fix','ST1')
-        adj.setConfigOption('refraction_coefficient','0.0')
+        adj.setConfig('fix','ST1')
+        adj.setConfig('refraction_coefficient','0.0')
         self.runAdjustment('Test 5',adj)
+
+    def test_100_locator_plugin( self ):
+        '''
+        Station locator plugin
+        '''
+        from Geodetic.StationLocatorPlugin import StationLocatorPlugin
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=(171.35,-44.82,20.0))
+        obs=[]
+        obs.append(AZ(st1,st2))
+        obs.append(SD(st1,st2))
+        obs.append(ZD(st1,st2))
+        self.offsetStation(st2,[0.5,1.0,-0.3])
+        net=Network.Network()
+        net.addStation(st1)
+        adj=Adjustment.Adjustment(stations=net,observations=obs,
+                                  verbose=True,plugins=[StationLocatorPlugin])
+        adj.setConfig('fix','ST1')
+        adj.setConfig('calculate_missing_stations','yes')
+        adj.setConfig('debug_calculate_missing_stations','yes')
+        adj.setConfig('refraction_coefficient','0.0')
+        self.runAdjustment('Test 100',adj)
+
+    def test_101_locator_plugin_config_load( self ):
+        '''
+        Station locator plugin via configuration
+        '''
+        from Geodetic.StationLocatorPlugin import StationLocatorPlugin
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=(171.35,-44.82,20.0))
+        obs=[]
+        obs.append(AZ(st1,st2))
+        obs.append(SD(st1,st2))
+        obs.append(ZD(st1,st2))
+        self.offsetStation(st2,[0.5,1.0,-0.3])
+        net=Network.Network()
+        net.addStation(st1)
+        adj=Adjustment.Adjustment(stations=net,observations=obs,
+                                  verbose=True)
+        adj.setConfig('use_plugin','station_locator_plugin')
+        adj.setConfig('fix','ST1')
+        adj.setConfig('calculate_missing_stations','yes')
+        adj.setConfig('debug_calculate_missing_stations','yes')
+        adj.setConfig('refraction_coefficient','0.0')
+        self.runAdjustment('Test 101',adj)
+
+    def test_150_geoid_plugin_config_load( self ):
+        '''
+        Local geoid plugin via configuration
+        '''
+        from Geodetic.StationLocatorPlugin import StationLocatorPlugin
+        st1=Station.Station('ST1',llh=(171.0,-45.0,100.0))
+        st2=Station.Station('ST2',llh=(171.05,-45.0,100.0))
+        st3=Station.Station('ST3',llh=(171.0,-44.93,100.0))
+        st4=Station.Station('ST4',llh=(171.0,-44.80,100.0))
+        obs=Traverse([st1,st2,st3,st4])
+        net=Network.Network()
+        net.addStation(st1,st2,st3,st4)
+        adj=Adjustment.Adjustment(stations=net,observations=obs,
+                                  verbose=True)
+        adj.setConfig('use_plugin','local_geoid_model_plugin')
+        adj.setConfig('fix','ST1 ST2 ST3 ST4')
+        adj.setConfig('local_geoid','ST1 25.6 30.0 -45.0 15000')
+        adj.setConfig('refraction_coefficient','0.0')
+        self.runAdjustment('Test 150',adj,checkListing=True,checkGeoid=True)
 
 
 if __name__=="__main__":

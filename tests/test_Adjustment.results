@@ -1,7 +1,5 @@
 ======================================================================
 >>>> test_1__output 
-Observation files:
-
 Calculating 3 parameters
 Iteration 0: max coord change 1.1576m at ST2
 Iteration 1: max coord change 0.0000m at ST2
@@ -30,8 +28,6 @@ Summary of residuals
 >>>>
 ======================================================================
 >>>> test_2__output 
-Observation files:
-
 Calculating 3 parameters
 Iteration 0: max coord change 1.1576m at ST1
 Iteration 1: max coord change 0.0000m at None
@@ -53,8 +49,6 @@ Summary of residuals
 >>>>
 ======================================================================
 >>>> test_3__output 
-Observation files:
-
 Calculating 3 parameters
 Iteration 0: max coord change 1.1576m at ST2
 Iteration 1: max coord change 0.0000m at None
@@ -77,8 +71,6 @@ Summary of residuals
 >>>>
 ======================================================================
 >>>> test_4__output 
-Observation files:
-
 Calculating 3 parameters
 Iteration 0: max coord change 1.1573m at ST2
 Iteration 1: max coord change 0.0015m at ST2
@@ -108,8 +100,6 @@ HA,ST2,ST3,0.0000,0.0000,67.4272,0.0010
 >>>>
 ======================================================================
 >>>> test_5__output 
-Observation files:
-
 Calculating 3 parameters
 Iteration 0: max coord change 1.1576m at ST2
 Iteration 1: max coord change 0.0000m at ST2
@@ -135,4 +125,126 @@ Summary of residuals
 ]
 >>>> test_5__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
 >>>> test_5__station_st2_coordinates array([ 171.35        ,  -44.82        ,   19.9999413984])
+>>>>
+======================================================================
+>>>> test_100__output 
+Calculating missing station coordinates
+Station location observation summary:
+  1 AZ observations
+  1 SD observations
+  1 ZD observations
+Fixing station ST1
+  Trial coordinate determined for ST2: [-4480181.1753038522   681563.6681907893 -4473196.0388921313]
+Fixing station ST1
+  Trial coordinate determined for ST2: [-4480181.1753038522   681563.6681907893 -4473196.0388921313]
+Determined ST2 from 1 trial coords as [-4480181.1753038522   681563.6681907893 -4473196.0388921313]
+Fixing station ST2
+   Adding network station ST2
+
+Approximate coordinates calculated for 1 stations
+
+Calculating 3 parameters
+Iteration 0: max coord change 0.4205m at ST2
+Iteration 1: max coord change 0.0000m at ST2
+
+Sum of squared residuals:     0.000000
+Number of parameters:         3
+Number of observations:       3
+Degrees of freedom:           0
+Standard error of unit weight 1.0000
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  AZ            0   1.0000
+  SD            0   1.0000
+  ZD            0   1.0000
+
+>>>> test_100__obs [AZ,ST1,ST2,0.0000,0.0000,54.2295,0.0010
+, SD,ST1,ST2,0.0000,0.0000,34118.6250,0.0010
+, ZD,ST1,ST2,0.0000,0.0000,90.1364,0.0010
+]
+>>>> test_100__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_100__station_st2_coordinates array([ 171.35,  -44.82,   20.  ])
+>>>>
+======================================================================
+>>>> test_101__output 
+Calculating missing station coordinates
+Station location observation summary:
+  1 AZ observations
+  1 SD observations
+  1 ZD observations
+Fixing station ST1
+  Trial coordinate determined for ST2: [-4480181.1753038522   681563.6681907893 -4473196.0388921313]
+Fixing station ST1
+  Trial coordinate determined for ST2: [-4480181.1753038522   681563.6681907893 -4473196.0388921313]
+Determined ST2 from 1 trial coords as [-4480181.1753038522   681563.6681907893 -4473196.0388921313]
+Fixing station ST2
+   Adding network station ST2
+
+Approximate coordinates calculated for 1 stations
+
+Calculating 3 parameters
+Iteration 0: max coord change 0.4205m at ST2
+Iteration 1: max coord change 0.0000m at ST2
+
+Sum of squared residuals:     0.000000
+Number of parameters:         3
+Number of observations:       3
+Degrees of freedom:           0
+Standard error of unit weight 1.0000
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  AZ            0   1.0000
+  SD            0   1.0000
+  ZD            0   1.0000
+
+>>>> test_101__obs [AZ,ST1,ST2,0.0000,0.0000,54.2295,0.0010
+, SD,ST1,ST2,0.0000,0.0000,34118.6250,0.0010
+, ZD,ST1,ST2,0.0000,0.0000,90.1364,0.0010
+]
+>>>> test_101__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_101__station_st2_coordinates array([ 171.35,  -44.82,   20.  ])
+>>>>
+======================================================================
+>>>> test_150__output 
+Calculating 0 parameters
+Iteration 0: max coord change 0.0000m at None
+
+Sum of squared residuals:     568.102412
+Number of parameters:         0
+Number of observations:       10
+Degrees of freedom:           10
+Standard error of unit weight 7.5373
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  HA            4   0.0100
+  SD            4   0.0000
+  ZD            4  11.9174
+
+>>>> test_150__obs [HA,ST2,ST1,0.0000,0.0000,0.0000,0.0010
+HA,ST2,ST3,0.0000,0.0000,63.1109,0.0010
+, SD,ST2,ST1,0.0000,0.0000,3942.4033,0.0010
+, SD,ST2,ST3,0.0000,0.0000,8722.3241,0.0010
+, ZD,ST2,ST1,0.0000,0.0000,90.0177,0.0010
+, ZD,ST2,ST3,0.0000,0.0000,90.0392,0.0010
+, HA,ST3,ST2,0.0000,0.0000,0.0000,0.0010
+HA,ST3,ST4,0.0000,0.0000,206.8714,0.0010
+, SD,ST3,ST2,0.0000,0.0000,8722.3241,0.0010
+, SD,ST3,ST4,0.0000,0.0000,14447.0119,0.0010
+, ZD,ST3,ST2,0.0000,0.0000,90.0392,0.0010
+, ZD,ST3,ST4,0.0000,0.0000,90.0650,0.0010
+]
+>>>> test_150__station_st1_coordinates array([ 171.          ,  -45.          ,   99.9999999981])
+>>>> test_150__station_st1_geoid [0.0083333333333333332, -0.012500000000000001, 25.600000000000001]
+>>>> test_150__station_st2_coordinates array([ 171.05        ,  -45.          ,   99.9999999981])
+>>>> test_150__station_st2_geoid [0.0083333333333333332, -0.012500000000000001, 26.460275814300353]
+>>>> test_150__station_st3_coordinates array([ 171.          ,  -44.93        ,   99.9999999991])
+>>>> test_150__station_st3_geoid [0.0083333333333333332, -0.012500000000000001, 24.468547147683857]
+>>>> test_150__station_st4_coordinates array([ 171.          ,  -44.8         ,   99.9999999991])
+>>>> test_150__station_st4_geoid [0.0, 0.0, 0.0]
 >>>>
