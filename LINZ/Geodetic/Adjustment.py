@@ -83,6 +83,13 @@ class Plugin( object ):
     def __init__( self, adjustment ):
         self.adjustment=adjustment
         self.options=adjustment.options
+        self.initPlugin()
+
+    def initPlugin( self ):
+        pass
+
+    def pluginOptions( self ):
+        return {}
 
 class Adjustment( object ):
 
@@ -215,13 +222,9 @@ class Adjustment( object ):
             if type(plugin) == pluginClass:
                 return
         plugin=pluginClass(self)
-        initfunc=getattr(plugin,'initPlugin',None)
-        if initfunc is not None and callable(initfunc):
-            initfunc()
-        optsfunc=getattr(plugin,'pluginOptions',None)
-        if optsfunc is not None and callable(optsfunc):
-            pluginopts=optsfunc()
-            self.options.update(pluginopts,addoptions=True)
+        plugin.initPlugin()
+        pluginopts=plugin.pluginOptions()
+        self.options.update(pluginopts,addoptions=True)
         self.addPlugin( plugin )
 
     def addPlugin( self, plugin ):
