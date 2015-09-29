@@ -34,6 +34,10 @@ class Options( object  ):
     Class to define the options used in an adjustment.
 
     '''
+    @staticmethod
+    def boolOption(value):
+        return 'yes'.startswith(value.lower())
+
     def __init__(self,config_file=None):
         self.__dict__['_values']={}
 
@@ -132,6 +136,7 @@ class Adjustment( object ):
         postSetup
         preSetupParameters!
         postSetupParameters
+        updateObservationEquation
 
     The order in which plugins are loaded is defines the order in which the plugin hooks will be run.
     The Adjustment class itself is the first plugin loaded.  Those functions marked with ! are run in
@@ -201,7 +206,7 @@ class Adjustment( object ):
 
         # Setup configuration
         if config_file is not None:
-            options.loadConfigFile( config_file, sys.stderr.write )
+            self.loadConfigFile( config_file, sys.stderr.write )
         if options is not None:
             self.options.update(options)
         if verbose:
@@ -216,8 +221,8 @@ class Adjustment( object ):
         self.output=output_file
 
     def addPluginClass( self, pluginClass ):
-        if not issubclass( pluginClass, Plugin ):
-            raise RuntimeError('Invalid Adjustment plugin class '+pluginClass.__name__)
+        if not inspect.isclass(pluginClass) or not issubclass( pluginClass, Plugin ):
+            raise RuntimeError('Invalid Adjustment plugin class '+str(pluginClass))
         for plugin in self.plugins:
             if type(plugin) == pluginClass:
                 return
@@ -362,9 +367,6 @@ class Adjustment( object ):
             debugObservationEquations=False,
             )
 
-    def boolOption(self,value):
-        return 'yes'.startswith(value.lower())
-
     def setConfigOption( self, item, value ):
         item=item.lower()
         value=value.strip()
@@ -391,7 +393,7 @@ class Adjustment( object ):
         elif item == 'reject':
             self.options.rejectStations.extend(value.split())
         elif item == 'ignore_missing_stations':
-            self.options.ignoreMissingStations=self.boolOption(value)
+            self.options.ignoreMissingStations=Options.boolOption(value)
 
         # Observation options
         elif item == 'reweight_observation_type':
@@ -409,19 +411,19 @@ class Adjustment( object ):
         elif item == 'max_iterations':
             self.options.maxIterations=int(value)
         elif item == 'adjust_enu':
-            self.options.adjustENU=self.boolOption(value)
+            self.options.adjustENU=Options.boolOption(value)
         elif item == 'refraction_coefficient':
             self.options.refractionCoefficient=float(value)
 
         # Output options
         elif item == 'verbose':
-            self.options.verbose=self.boolOption(value)
+            self.options.verbose=Options.boolOption(value)
 
         # Debug options
         elif item == 'debug_observation_equations':
-            self.options.debugObservationEquations=self.boolOption(value)
+            self.options.debugObservationEquations=Options.boolOption(value)
         elif item == 'debug_station_offsets':
-            self.options.debugStationOffsets=self.boolOption(value)
+            self.options.debugStationOffsets=Options.boolOption(value)
         else:
             raise RuntimeError('Unrecognized configuration item: '+item+': '+value)
 
@@ -434,6 +436,7 @@ class Adjustment( object ):
 
     def loadConfigFile( self, config_file, write=None ):
         cfg={}
+        nerrors=0
         with open(config_file) as cfgf:
             for l in cfgf:
                 try:
@@ -450,8 +453,12 @@ class Adjustment( object ):
                 except Exception as ex:
                     if write is not None:
                         write(ex.message)
+                        write("\n")
+                        nerrors+=1
                     else:
                         raise
+        if nerrors > 0:
+            raise RuntimeError("Stopped with {0} errors in configuration file".format(nerrors))
 
     def write( self, message, debug=False ):
         if self.output is not None:
@@ -700,15 +707,15 @@ class Adjustment( object ):
         Function to set up adjustment parameters.  
         Parameters are added with addParameter(paramname), which returns
         the parameter row number in the adjustment.
-        Also sets up the coordParamMapping dictionary as described in
+        Note parameters also configured by the coordParamMapping dictionary 
         setupStationCoordMapping()
-
         '''
-        self.runPluginFunction('setupStationCoordMapping',reverse=True)
+        pass
 
     def setupNormalEquations( self ):
         self.initParameters()
         self.runPluginFunction('setupParameters',runPrePostFunctions=True)
+        self.runPluginFunction('setupStationCoordMapping',reverse=True)
         nprm=self.nparam
         self.solved=0
         self.N=np.zeros((nprm,nprm))
@@ -898,7 +905,9 @@ class Adjustment( object ):
         elif obstype.code == 'AZ':
             obsres = np.remainder(obsres+180.0,360.0)-180.0
 
-        return ObsEq(obsres,obseq,obscovar,schreiber)
+        obseq=ObsEq(obsres,obseq,obscovar,schreiber)
+        self.runPluginFunction('updateObservationEquation',obs,obseq)
+        return obseq
 
     # Note: May be scope for simplification/optimisation here using more
     # sophisticated routines such as numpy.linalg.lstsqu.  Also look at
@@ -1080,7 +1089,7 @@ class Adjustment( object ):
                 tol=1.0e-12 # Random!
                 cvrinv=linalg.pinv(rescvr,tol)
                 rank=linalg.matrix_rank(rescvr,tol)
-                summary[0] += res.T.dot(cvrinv.dot(res))
+                summary[0] += res.T.dot(cvrinv.dot(res))[0,0]
                 summary[1] += rank
 
             elif obs.obstype.nvalue == 1:
@@ -1209,7 +1218,7 @@ class Adjustment( object ):
         self.runCalculateSolution()
         self.runOutputs()
 
-    @classmethod
+    @staticmethod
     def main(plugins=None):
         '''
         Main function to run the adjustment
@@ -1241,12 +1250,14 @@ class Adjustment( object ):
             classes.extend(plugins)
             with open(args.config_file,'w') as cf:
                 spacer=''
-                for c in classes:
-                    source=inspect.getfile(adjustment_class)
+                for cls in classes:
+                    source=inspect.getfile(cls)
                     source=os.path.splitext(source)[0]+'.adj'
-                    if c==Adjustment and not os.path.exists(source):
-                        print("Cannot find example configuration file :-(")
-                        sys.exit()
+                    if not os.path.exists(source):
+                        if cls==Adjustment:
+                            print("Cannot find example configuration file :-(")
+                            sys.exit()
+                        continue
                     with open(source) as sf:
                         cf.write(spacer)
                         cf.write(sf.read())

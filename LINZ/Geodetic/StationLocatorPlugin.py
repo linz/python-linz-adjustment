@@ -17,9 +17,9 @@ class StationLocatorPlugin( Plugin ):
 
     def setConfigOption( self, item, value ):
         if item == 'calculate_missing_stations':
-            self.options.calcMissingCoords=self.adjustment.boolOption(value)
+            self.options.calcMissingCoords=self.options.boolOption(value)
         elif item == 'debug_calculate_missing_stations':
-            self.options.debugCalcMissingCoords=self.adjustment.boolOption(value)
+            self.options.debugCalcMissingCoords=self.options.boolOption(value)
         else:
             return False
         return True
