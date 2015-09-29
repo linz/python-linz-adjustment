@@ -1,3 +1,16 @@
+python-linz-adjustment (2.0.0-1) trusty; urgency=medium
+
+  * Fixing initial tests
+  * Updating CsvObsFile for ha_.. etc columns
+  * Station locator fix
+  * CsvObsFile with column renaming and attributes
+  * Simplifying CsvObsFile tests
+  * Fixing station offsets
+  * Updated unit tests
+  * Getting plugins working
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Tue, 29 Sep 2015 18:43:42 +1300
+
 python-linz-adjustment (1.1.2-1) trusty; urgency=medium
 
   * Fixing options handling
