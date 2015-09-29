@@ -7,10 +7,12 @@ from __future__ import unicode_literals
 import sys
 import numpy as np
 import os.path
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 import unittest
+
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 from Geodetic import Station, Network, StationLocator
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from createobs import HA, AZ, SD, ZD, LV, GX, Traverse
 
 class StationLocatorTestCase( unittest.TestCase ):

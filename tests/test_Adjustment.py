@@ -9,11 +9,12 @@ import sys
 import numpy as np
 import os.path
 import StringIO
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 from LINZ import fileunittest
 
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 from Geodetic import Station, Network, Adjustment
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from createobs import HA, AZ, SD, ZD, LV, GB, GX, Traverse
 
 class AdjustmentTestCase( fileunittest.TestCase ):
