@@ -152,6 +152,8 @@ class StationLocator( object ):
                     continue
                 # self.locator.write("Attempting to coordinate {0}\n".format(tostn.code))
                 obs=self.obs[tostn]
+                if 'SD' not in obs:
+                    continue
 
                 # Work out an azimuth
                 azimuths=[]
@@ -176,10 +178,11 @@ class StationLocator( object ):
                 azimuth=np.mean(azimuths)
 
                 llh0=GRS80.geodetic(self.xyz)
+                hgtdiff=None
                 if 'LV' in obs:
                     hgtdiff=np.mean([o.obsvalue.value for o in obs['LV']])
                 # Only use ZD if don't have levelled height difference
-                else:
+                elif 'ZD' in obs:
                     distance=np.mean([o.obsvalue.value for o in obs['SD']])
                     hgtdiffs=[]
                     for o in obs['ZD']:
@@ -194,6 +197,8 @@ class StationLocator( object ):
                             hd=-hd
                         hgtdiffs.append(hd)
                     hgtdiff=np.mean(hgtdiffs)
+                if hgtdiff is None:
+                    continue
 
                 hordists=[]
                 for o in obs['SD']:

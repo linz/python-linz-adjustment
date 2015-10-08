@@ -153,7 +153,7 @@ class Reader( object ):
                     if c < 0:
                         record.append(None)
                     else:
-                        value=row[c] if len(row) > c else None
+                        value=row[c].strip() if len(row) > c else ''
                         if f.parsefunc:
                             if value == '':
                                 value= None
@@ -161,7 +161,7 @@ class Reader( object ):
                                 try:
                                     value=f.parsefunc(value)
                                 except:
-                                    raise ValueError("Invalid value \""+row[c]+"\" for "+
+                                    raise ValueError("Invalid value \""+value+"\" for "+
                                                      self._header[c]+" in "+self._filename+
                                                      " at record "+str(recordno))
                         elif value == '' and f.optional:

@@ -1202,6 +1202,7 @@ class Adjustment( object ):
 
     def runSetup( self ):
         self.loadDataFiles()
+        self.writeObservationSummary()
         self.runPluginFunction('setup',runPrePostFunctions=True)
         self.ignoreMissingStations()
         self.setupNormalEquations()
