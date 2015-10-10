@@ -36,7 +36,7 @@ class Options( object  ):
     '''
     @staticmethod
     def boolOption(value):
-        return 'yes'.startswith(value.lower())
+        return 'yes'.startswith(value.lower()) or 'true'.startswith(value.lower())
 
     def __init__(self,config_file=None):
         self.__dict__['_values']={}
@@ -1202,7 +1202,8 @@ class Adjustment( object ):
 
     def runSetup( self ):
         self.loadDataFiles()
-        self.writeObservationSummary()
+        if self.options.verbose:
+            self.writeObservationSummary()
         self.runPluginFunction('setup',runPrePostFunctions=True)
         self.ignoreMissingStations()
         self.setupNormalEquations()
