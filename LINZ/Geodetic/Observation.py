@@ -9,6 +9,19 @@ from collections import namedtuple
 from .Station import Station
 
 class ObservationValue( object ):
+    '''
+    Represents a single observation value within a set. Has members
+
+      inststn
+      trgtstn
+      value
+      stderr
+      insthgt
+      trgthgt
+      attributes
+
+    Note that stderr may be overridden by the covariance of the set
+    '''
 
     def __init__( self, inststn, trgtstn=None, value=0.0, stderr=None, insthgt=0.0, trgthgt=0.0, attributes={} ):
         self.inststn=inststn
@@ -51,18 +64,19 @@ class Observation( object ):
     Class representing an observation
 
     Each observation is defined by 
-       an observation type (obstype)
-       a observation date/time
-       an array of observation values with elements
-         from station code
-         from station height
-         to station (may be None if not appropriate to type)
-         to station height
-         value (single value or array)
-         stderr (error of observation)
-       a covariance matrix 
+       obstype   an observation type (obstype)
+       obsdate   a observation date/time
+       obsvalues an array of observation values with elements
+         inststn    from station code
+         insthgt    from station height
+         trgtstn    to station (may be None if not appropriate to type)
+         trgthgt    to station height
+         value      observation value (single value or array)
+         stderr     standard error of observation
+         attributes dictionary of custom attributes
+       covariance   the observation matrix 
 
-    The covariance, if defined, overrides the stderr.
+    The covariance, if defined, overrides the individual stderr.
     '''
 
     ObservationType=namedtuple('ObservationType','code name nvalue calcobs')

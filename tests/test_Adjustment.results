@@ -1,5 +1,12 @@
 ======================================================================
 >>>> test_1__output 
+Observation summary:
+  1 Azimuth observations
+  1 Height difference observations
+  1 Slope distance observations
+  1 Zenith distance observations
+  Using refraction coefficient 0.000
+
 Calculating 3 parameters
 Iteration 0: max coord change 1.1576m at ST2
 Iteration 1: max coord change 0.0000m at ST2
@@ -28,6 +35,10 @@ Summary of residuals
 >>>>
 ======================================================================
 >>>> test_2__output 
+Observation summary:
+  1 XYZ coordinate observations
+  Using refraction coefficient 0.075
+
 Calculating 3 parameters
 Iteration 0: max coord change 1.1576m at ST1
 Iteration 1: max coord change 0.0000m at None
@@ -49,6 +60,10 @@ Summary of residuals
 >>>>
 ======================================================================
 >>>> test_3__output 
+Observation summary:
+  1 XYZ baseline observations
+  Using refraction coefficient 0.000
+
 Calculating 3 parameters
 Iteration 0: max coord change 1.1576m at ST2
 Iteration 1: max coord change 0.0000m at None
@@ -71,6 +86,12 @@ Summary of residuals
 >>>>
 ======================================================================
 >>>> test_4__output 
+Observation summary:
+  2 Horizontal angle observations in 1 rounds
+  1 Slope distance observations
+  1 Zenith distance observations
+  Using refraction coefficient 0.000
+
 Calculating 3 parameters
 Iteration 0: max coord change 1.1573m at ST2
 Iteration 1: max coord change 0.0015m at ST2
@@ -100,6 +121,13 @@ HA,ST2,ST3,0.0000,0.0000,67.4272,0.0010
 >>>>
 ======================================================================
 >>>> test_5__output 
+Observation summary:
+  1 Azimuth observations
+  1 Height difference observations
+  1 Slope distance observations
+  1 Zenith distance observations
+  Using refraction coefficient 0.000
+
 Calculating 3 parameters
 Iteration 0: max coord change 1.1576m at ST2
 Iteration 1: max coord change 0.0000m at ST2
@@ -128,7 +156,14 @@ Summary of residuals
 >>>>
 ======================================================================
 >>>> test_100__output 
+Observation summary:
+  1 Azimuth observations
+  1 Slope distance observations
+  1 Zenith distance observations
+  Using refraction coefficient 0.000
+
 Calculating missing station coordinates
+Attempting to locate missing stations
 Station location observation summary:
   1 AZ observations
   1 SD observations
@@ -169,7 +204,14 @@ Summary of residuals
 >>>>
 ======================================================================
 >>>> test_101__output 
+Observation summary:
+  1 Azimuth observations
+  1 Slope distance observations
+  1 Zenith distance observations
+  Using refraction coefficient 0.000
+
 Calculating missing station coordinates
+Attempting to locate missing stations
 Station location observation summary:
   1 AZ observations
   1 SD observations
@@ -210,6 +252,12 @@ Summary of residuals
 >>>>
 ======================================================================
 >>>> test_150__output 
+Observation summary:
+  4 Horizontal angle observations in 2 rounds
+  4 Slope distance observations
+  4 Zenith distance observations
+  Using refraction coefficient 0.000
+
 Calculating 0 parameters
 Iteration 0: max coord change 0.0000m at None
 
