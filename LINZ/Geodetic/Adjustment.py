@@ -379,7 +379,17 @@ class Adjustment( object ):
         elif item == 'coordinate_file':
             self.options.stationFile=value
         elif item == 'data_file':
-            self.options.dataFiles.append(value)
+            parts=value.split()
+            filename=parts[0]
+            attributes={}
+            for p in parts[1:]:
+                m = re.match(r'^(\w+)\=(.+)$',p)
+                if m:
+                    attributes[m.group(1)]=m.group(2)
+                else:
+                    raise RuntimeError("Invalid data_file attribute "+p)
+            self.options.dataFiles.append(
+                {'filename':filename,'attributes':attributes})
         elif item == 'output_coordinate_file':
             self.options.outputStationFile=value
         elif item == 'residual_csv_file':
@@ -487,20 +497,22 @@ class Adjustment( object ):
 
         first=True
         for obsfile in self.options.dataFiles:
+            filename=obsfile['filename']
+            attributes=obsfile['attributes']
             if first:
                 self.write("\nObservation files:\n")
                 first=False
-            self.write("  {0}\n".format(obsfile))
-            if obsfile.lower().endswith('.msr'):
+            self.write("  {0}\n".format(filename))
+            if filename.lower().endswith('.msr'):
                 from . import MsrFile
                 reader=MsrFile.read
-            elif re.search(r'\.snx(\.gz)?$',obsfile,re.I):
+            elif re.search(r'\.snx(\.gz)?$',filename,re.I):
                 from . import SinexObsFile
                 reader=SinexObsFile.read
             else:
                 from . import CsvObsFile
                 reader=CsvObsFile.read
-            for obs in reader(obsfile):
+            for obs in reader(filename,**attributes):
                 typecode=obs.obstype.code
                 if typecode in reweight:
                     factor=reweight[typecode]

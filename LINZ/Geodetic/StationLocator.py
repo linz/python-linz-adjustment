@@ -1,4 +1,4 @@
-#!/usr/bn/python
+#!/usr/bin/python
 
 # Imports to support python 3 compatibility
 from __future__ import absolute_import
@@ -178,7 +178,7 @@ class StationLocator( object ):
                 azimuth=np.mean(azimuths)
 
                 llh0=GRS80.geodetic(self.xyz)
-                hgtdiff=None
+                hgtdiff=0.0
                 if 'LV' in obs:
                     hgtdiff=np.mean([o.obsvalue.value for o in obs['LV']])
                 # Only use ZD if don't have levelled height difference
@@ -232,8 +232,9 @@ class StationLocator( object ):
         self.observations=observations
         # Replace write with a null function if not defined
         if write is None:
-            write=lambda x: x
+            write=lambda x: None
         self.write=write
+        self.write("Attempting to locate missing stations\n")
         self.nupdated=0
         self.stations={}
         self.sets=[]
@@ -243,6 +244,8 @@ class StationLocator( object ):
         self.buildObservationIndex()
         self.locateInitialStations()
         nunlocated=len( self.unlocated )
+        if len(self.unlocated) == 0:
+            return
         while self.tryLocateStation() or self.tryFixAngle():
             # Should not be true - check to avoid infinite loop...
             if len(self.unlocated) >= nunlocated:
@@ -251,6 +254,9 @@ class StationLocator( object ):
             if nunlocated == 0:
                 break
         if len(self.unlocated) > 0:
+            self.write("\nCannot locate {0} remaining stations:\n".format(len(self.unlocated)));
+            for code in sorted([s.code for s in self.unlocated]):
+                self.write("  {0}\n".format(code))
             raise RuntimeError("Cannot locate {0} remaining stations"
                                .format(len(self.unlocated)))
         self.updateNetwork()
@@ -389,9 +395,10 @@ class StationLocator( object ):
             fixedstation.fixStation(fixedStations[fixedstation])
             self.unlocated=[s for s in self.stations.values() if s != fixedstation]
             nunlocated=len(self.unlocated)
+            nunlocated0=nunlocated
             while self.tryLocateStation():
                 if len(self.unlocated) >= nunlocated:
-                    raise RuntimeError("Failed locate station in tryFixAngle")
+                    break
                 nunlocated=len(self.unlocated)
                 if nunlocated == 0:
                     break
@@ -444,13 +451,16 @@ class StationLocator( object ):
             success=False
             self.unlocated=[s for s in self.stations.values() if s not in fixedStations]
             nunlocated=len(self.unlocated)
+            nunlocated0=nunlocated
             while self.tryLocateStation():
-                if len(self.unlocated) >= nunlocated:
-                    raise RuntimeError("Failed locate station in tryFixAngle")
+                if nunlocated >= len(self.unlocated):
+                    break
                 nunlocated=len(self.unlocated)
                 success=True
                 if nunlocated == 0:
                     break
+            if len(self.unlocated) >= nunlocated0:
+                raise RuntimeError("Failed to fix a  station in tryFixAngle")
             break
 
         if not success:

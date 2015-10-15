@@ -1,0 +1,6 @@
+fromstn,tostn,obstype,obsset,value,error,eqpt,setup
+ST1,ST2,AZ,1,95.2365,0.0015,T2,A
+ST1,ST2,LV,1,5.801,0.0025,GX3,A
+ST1,ST2,LV,1,6.501,0.0025,GX3,B
+ST1,ST2,LV,1,5.501,0.0025,GX1,C
+ST1,ST2,SD,1,195.2365,0.0025,DI20,1

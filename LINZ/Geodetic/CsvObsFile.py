@@ -24,16 +24,18 @@ def read( csvfile, colnames=None, attributes=None ):
        xx_value  value for xx type observation 
        xx_error  error for xx type observation
 
-    Default column names can be overridden using the colnames parameter.  This is a dictionary
-    mapping input column names to required column names.
+    Default column names can be overridden using the colnames parameter.  
+    This is a dictionary mapping input column names to required column names.
 
-    Additionally attributes can be specified as a list of names or a space separated string
-    Each which will be defined as observation value attributes.  Observations will also have
-    an attribute source containing file name and line number.  Attributes can be defined with 
+    Additionally attributes can be specified as a list of names or a string
+    separated by non-word characters.
+    Each which will be defined as observation value attributes.  
+    Observations will also have an attribute source containing file name 
+    and line number.  Attributes can be defined with 
     type and optionality in the same way as CsvRecord columns.
 
-    Each row can contain multiple observations usign the xx_value, xx_error format,
-    or one row entered using the obstype, value, error.
+    Each row can contain multiple observations usign the xx_value, 
+    xx_error format, or one row entered using the obstype, value, error.
 
     '''
 
@@ -51,7 +53,7 @@ def read( csvfile, colnames=None, attributes=None ):
 
     attributes=attributes or []
     if isinstance(attributes,basestring):
-        attributes=attributes.split()
+        attributes=[x for x in re.split(r'\W+',attributes) if len(x) > 0]
     columns=columns+' '+' '.join(attributes)
     attfuncs={}
     for a in attributes:

@@ -200,6 +200,24 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         adj.setConfig('refraction_coefficient','0.0')
         self.runAdjustment('Test 150',adj,checkListing=True,checkGeoid=True)
 
+    def test_200_csv_attribute( self ):
+        '''
+        Read CSV file
+        '''
+        df=os.path.join(os.path.dirname(__file__),'data','testadj1.csv')
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=(171.35,-44.82,20.0))
+        net=Network.Network()
+        net.addStation(st1,st2)
+        adj=Adjustment.Adjustment(stations=net, verbose=True)
+        adj.setConfig('data_file',df+' attributes=eqpt,setup')
+        adj.setConfig('fix','ST1 ST2')
+        adj.loadDataFiles()
+        for o in adj.observations:
+            for v in o.obsvalues:
+                self.check('Test 200: Observation attributes:',[v.attributes.get('eqpt'),v.attributes.get('setup')])
+
+
 
 if __name__=="__main__":
     fileunittest.main()
