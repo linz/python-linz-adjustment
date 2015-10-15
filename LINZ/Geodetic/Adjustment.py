@@ -367,6 +367,23 @@ class Adjustment( object ):
             debugObservationEquations=False,
             )
 
+    def splitConfigValue( self, value ):
+        '''
+        Split a configuration value based on white space.  Values
+        may be quoted with ".." to include whitespace 
+        '''
+        fieldre=r'\s+(\"[^\"]*\"|[^\s\"]\S*)'
+        value=' '+value
+        if not re.match('^(?:'+fieldre+')+$',value):
+            return None
+        parts=[]
+        for m in re.finditer(fieldre,value):
+            item=m.group(1)
+            if item.startswith('"'):
+                item=item[1:-1]
+            parts.append(item)
+        return parts
+
     def setConfigOption( self, item, value ):
         item=item.lower()
         value=value.strip()
@@ -379,7 +396,9 @@ class Adjustment( object ):
         elif item == 'coordinate_file':
             self.options.stationFile=value
         elif item == 'data_file':
-            parts=value.split()
+            parts=self.splitConfigValue(value)
+            if parts is None:
+                raise RuntimeError("Invalid data_file definition "+value)
             filename=parts[0]
             attributes={}
             for p in parts[1:]:

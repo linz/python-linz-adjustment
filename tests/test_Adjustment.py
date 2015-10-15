@@ -210,12 +210,14 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         net=Network.Network()
         net.addStation(st1,st2)
         adj=Adjustment.Adjustment(stations=net, verbose=True)
-        adj.setConfig('data_file',df+' attributes=eqpt,setup')
+        adj.setConfig('data_file','"'+df+'" attributes=eqpt,setup')
         adj.setConfig('fix','ST1 ST2')
         adj.loadDataFiles()
+        i=0
         for o in adj.observations:
             for v in o.obsvalues:
-                self.check('Test 200: Observation attributes:',[v.attributes.get('eqpt'),v.attributes.get('setup')])
+                i+=1
+                self.check('Test 200: Observation '+str(i)+' attributes:',[v.attributes.get('eqpt'),v.attributes.get('setup')])
 
 
 

@@ -297,9 +297,9 @@ HA,ST3,ST4,0.0000,0.0000,206.8714,0.0010
 >>>> test_150__station_st4_geoid [0.0, 0.0, 0.0]
 >>>>
 ======================================================================
->>>> test_200__observation_attributes_ ['T2', 'A']
->>>> test_200__observation_attributes_ ['GX3', 'A']
->>>> test_200__observation_attributes_ ['GX3', 'B']
->>>> test_200__observation_attributes_ ['GX1', 'C']
->>>> test_200__observation_attributes_ ['DI20', '1']
+>>>> test_200__observation_1_attributes_ ['T2', 'A']
+>>>> test_200__observation_2_attributes_ ['GX3', 'A']
+>>>> test_200__observation_3_attributes_ ['GX3', 'B']
+>>>> test_200__observation_4_attributes_ ['GX1', 'C']
+>>>> test_200__observation_5_attributes_ ['DI20', '1']
 >>>>
