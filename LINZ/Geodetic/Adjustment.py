@@ -124,7 +124,6 @@ class Adjustment( object ):
         setupStationCoordMapping*!
         calcStationOffsets*
         observationEquation
-        updateParameters
 
     The adjustment can also be modified by adding a plugin as a class which implements 
     any the functions marked with *.  Note that for the calculateSolution function only the last defined
@@ -172,7 +171,7 @@ class Adjustment( object ):
 
             # Other functions implemented by plugin
 
-            def updateParameters( self, paramValues )
+            def setupParameters( self )
                 ....
 
     '''
@@ -193,7 +192,10 @@ class Adjustment( object ):
         self.setupOptions()
         if verbose:
             self.options.verbose=True
-        self.output=output_file
+        outputset=False
+        if output_file is not None:
+            self.setOutputFile( output_file )
+            outputset=True
         self.parameters=[]
         self.plugins=[self]
         self.pluginFuncs={}
@@ -211,9 +213,10 @@ class Adjustment( object ):
             self.options.update(options)
         if verbose:
             self.options.verbose=True
-        self.openOutputFile( output_file )
+        if output_file is None:
+            self.setOutputFile()
 
-    def openOutputFile( self, output_file=None ):
+    def setOutputFile( self, output_file=None ):
         if output_file is None:
             output_file = self.options.listingFile
         if isinstance(output_file,basestring):
@@ -647,6 +650,9 @@ class Adjustment( object ):
         Function used to update parameters.  Adjustment residual calculation
         assumes that parameters are updated at each iteration, so that at final
         iteration residuals are not changed.
+
+        The updateFunc should take as parameters the list of calculated
+        parameter values, and return a boolean converged status
         '''
         self.updateFuncs.append(updateFunc)
 
@@ -728,9 +734,14 @@ class Adjustment( object ):
         vector paramValues.  Returns the maximum coordinate offset and the code of the
         corresponding station.
         '''
+        converged=True
         for update in self.updateFuncs:
-            update(paramValues)
-        return self.updateStationCoordParameters( paramValues )
+            if not update(paramValues):
+                converged=False
+        coordUpdate,code=self.updateStationCoordParameters( paramValues )
+        if coordUpdate > self.options.convergenceTolerance:
+            converged=False
+        return converged,coordUpdate,code
 
 
     def setupParameters( self ):
@@ -767,7 +778,7 @@ class Adjustment( object ):
         Each offset is returned as an ENU offset local to the station.
 
         Returns a list of entries, one for each observation value.  Each entry in the list
-        has four values:
+        has five values:
             offsettype     eg Station.OFFSET_H, Station.OFFSET_ENU, ...
             inst_offset    offset for instrument station
             trgt_offset    offset for target station
@@ -796,26 +807,28 @@ class Adjustment( object ):
         return offsets
 
     def convertOffsetToXYZ( self, obsvalue, offset ):
-        offsettype,offi,poffi,offt,pofft=offset
+        offsettype=offset[0]
         if offsettype==Station.OFFSET_XYZ:
             return offset
-        result=[Station.OFFSET_XYZ]
-        for stn,offset,doffset in ((obsvalue.inststn,offi,poffi),(obsvalue.trgtstn,offt,pofft)):
+        result=[Station.OFFSET_XYZ,offset[1],offset[2],offset[3],offset[4]]
+        for i,stn in ((1,obsvalue.inststn),(2,obsvalue.trgtstn)):
+            offset=result[i]
             if offset is None:
-                result.extend((None,None))
                 continue
+            doffset=result[i+2]
             if offsettype==Station.OFFSET_H:
                 offset=np.array((0.0,0.0,offset))
                 if doffset is not None:
                     ddp=doffset[1]
-                    zero=np.zeros(n.shape)
-                    doffset[1]=np.array((zero,zero,ddp)).T
+                    zero=np.zeros(ddp.shape)
+                    doffset=(doffset[0],np.array([zero,zero,ddp]).T)
             stn=self.getStation(stn)
             enu=stn.enu() if offsettype==Station.OFFSET_ENU else stn.genu()
             offset=offset.dot(enu)
             if doffset is not None:
-                doffset[1]=doffset[1].dot(enu)
-            result.append(offset,doffset)
+                doffset=(doffset[0],doffset[1].dot(enu))
+            result[i]=offset
+            result[i+2]=doffset
         return result
 
     def compileStationOffsets( self, obs ):
@@ -828,8 +841,8 @@ class Adjustment( object ):
                 poffset=self.convertOffsetToXYZ(obsvalue,poffsets[i])
                 if offsets is not None:
                     offset=offsets[i]
-                    offi,offt,doffi,dofft=offset
-                    poffi,pofft,dpoffi,dpofft=poffset
+                    tpo,offi,offt,doffi,dofft=offset
+                    ptpo,poffi,pofft,dpoffi,dpofft=poffset
                     if poffi is not None:
                         if offi is not None:
                             offi=np.add(offi,poffi)
@@ -843,13 +856,13 @@ class Adjustment( object ):
                     if dpoffi is not None:
                         if doffi is not None:
                             doffi[0].extend(dpoffi[0])
-                            doffi[1]=np.vstack((doffi[1],dpoffi[1]))
+                            doffi=(doffi[0],np.vstack((doffi[1],dpoffi[1])))
                         else:
                             doffi=dpoffi
                     if dpofft is not None:
                         if dofft is not None:
                             dofft[0].extend(dpofft[0])
-                            dofft[1]=np.vstack((dofft[1],dpofft[1]))
+                            dofft=(dofft[0],np.vstack((dofft[1],dpofft[1])))
                         else:
                             dofft=dpofft
                     poffset=(Station.OFFSET_XYZ,offi,offt,doffi,dofft)
@@ -1026,6 +1039,10 @@ class Adjustment( object ):
         Debugging option to print observation equations
         '''
         self.setupNormalEquations()
+        self.writeDebugOutput("\nParameters:\n")
+        for p in self.parameters:
+            self.writeDebugOutput("    {0}\n".format(p))
+        self.writeDebugOutput("\nObservation Equations:\n")
         for o in self.observations:
             ov=o.obsvalues[0]
             self.writeDebugOutput("\nObservation: {0} from {1} to {2}{3}\n".format(
@@ -1218,10 +1235,9 @@ class Adjustment( object ):
 
         converged=False
         for i in range(options.maxIterations):
-            coordUpdate,code=self.runOneIteration()
+            converged,coordUpdate,code=self.runOneIteration()
             self.write("Iteration {0}: max coord change {1:.4f}m at {2}\n".format(i,coordUpdate,code))
-            if coordUpdate < options.convergenceTolerance:
-                converged=True
+            if converged:
                 break
 
         if not converged:

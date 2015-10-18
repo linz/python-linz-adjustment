@@ -25,11 +25,9 @@ class AdjustmentTestCase( fileunittest.TestCase ):
     def runAdjustment( self, test, adj, checkListing=True, checkGeoid=False ):
         outputfile=StringIO.StringIO()
         try:
-            oldio=sys.stdout
-            sys.stdout=outputfile
+            adj.setOutputFile(outputfile)
             adj.run()
         finally:
-            sys.stdout=oldio
             output=outputfile.getvalue()
             outputfile.close()
         if checkListing:
@@ -202,7 +200,7 @@ class AdjustmentTestCase( fileunittest.TestCase ):
 
     def test_200_csv_attribute( self ):
         '''
-        Read CSV file
+        Read CSV file attributes
         '''
         df=os.path.join(os.path.dirname(__file__),'data','testadj1.csv')
         st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
@@ -220,6 +218,25 @@ class AdjustmentTestCase( fileunittest.TestCase ):
                 self.check('Test 200: Observation '+str(i)+' attributes:',[v.attributes.get('eqpt'),v.attributes.get('setup')])
 
 
+    def test_250_csv_attribute( self ):
+        '''
+        Height setup calculator
+        '''
+        df=os.path.join(os.path.dirname(__file__),'data','testadj1.csv')
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=[ 171.0024646771,  -45.000160237 ,   15.9343333328])
+        net=Network.Network()
+        net.addStation(st1,st2)
+        adj=Adjustment.Adjustment(stations=net, verbose=True)
+        adj.setConfig('data_file','"'+df+'" attributes=eqpt,setup')
+        adj.setConfig('fix','ST1')
+        adj.setConfig('use_plugin','setup_height_plugin')
+        adj.setConfig('calculate_setup_heights','true')
+        adj.setConfig('inst_trgt_setup_attributes','none setup')
+        adj.setConfig('valid_setup_regex','[A-Z]')
+        adj.setConfig('fix_setup_height','A 0.25')
+        adj.setConfig('debug_observation_equations','true')
+        self.runAdjustment('Test 250',adj,checkListing=True)
 
 if __name__=="__main__":
     fileunittest.main()

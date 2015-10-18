@@ -303,3 +303,115 @@ HA,ST3,ST4,0.0000,0.0000,206.8714,0.0010
 >>>> test_200__observation_4_attributes_ ['GX1', 'C']
 >>>> test_200__observation_5_attributes_ ['DI20', '1']
 >>>>
+======================================================================
+>>>> test_250__output 
+Observation files:
+  data/testadj1.csv
+
+Observation summary:
+  2 Azimuth observations
+  6 Height difference observations
+  2 Slope distance observations
+  Using refraction coefficient 0.075
+
+Calculating 5 parameters
+
+Parameters:
+    Setup B height offset
+    Setup C height offset
+    ST2 X
+    ST2 Y
+    ST2 Z
+
+Observation Equations:
+
+Observation: AZ from ST1 to ST2
+  ObsRes: [[-0.0000000047]]
+  ObsEq:  [[ 0.            0.            0.003637083  -0.0001025429 -0.0036083457]]
+  ObsCvr: [[ 0.0000000007]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.3833333336]]
+  ObsEq:  [[ 0.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[ 0.5666666663]]
+  ObsEq:  [[ 1.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.4333333337]]
+  ObsEq:  [[ 0.            1.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: SD from ST1 to ST2
+  ObsRes: [[-0.0000023285]]
+  ObsEq:  [[ 0.            0.           -0.1132157954 -0.9898425481 -0.0859878686]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: AZ from ST1 to ST2
+  ObsRes: [[-0.0000000047]]
+  ObsEq:  [[ 0.            0.            0.003637083  -0.0001025429 -0.0036083457]]
+  ObsCvr: [[ 0.0000000007]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.3833333336]]
+  ObsEq:  [[ 0.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[ 0.5666666663]]
+  ObsEq:  [[ 1.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.4333333337]]
+  ObsEq:  [[ 0.            1.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: SD from ST1 to ST2
+  ObsRes: [[-0.0000023285]]
+  ObsEq:  [[ 0.            0.           -0.1132157954 -0.9898425481 -0.0859878686]]
+  ObsCvr: [[ 0.00000625]]
+Iteration 0: max coord change 0.3835m at ST2
+Iteration 1: max coord change 0.0004m at ST2
+Iteration 2: max coord change 0.0000m at ST2
+
+Sum of squared residuals:     0.000000
+Number of parameters:         5
+Number of observations:       10
+Degrees of freedom:           5
+Standard error of unit weight 0.0000
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  AZ            2   0.0000
+  LV            6   0.0000
+  SD            2   0.0000
+
+Calculated setup heights:
+
+Setup        Height    Error
+
+A            0.2500    -    
+
+B            0.9500   0.0025
+
+C           -0.0500   0.0025
+
+>>>> test_250__obs [AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=data/testadj1.csv:1
+, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=data/testadj1.csv:2
+, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=data/testadj1.csv:3
+, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=data/testadj1.csv:4
+, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=data/testadj1.csv:5
+, AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=data/testadj1.csv:1
+, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=data/testadj1.csv:2
+, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=data/testadj1.csv:3
+, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=data/testadj1.csv:4
+, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=data/testadj1.csv:5
+]
+>>>> test_250__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_250__station_st2_coordinates array([ 171.0024648196,  -45.0001602463,   15.550999999 ])
+>>>>

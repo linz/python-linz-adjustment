@@ -1,0 +1,30 @@
+#=====================================================================
+#  Calulate equipment setup height plugin.  Note that the setup height
+#  is applied in addition tot the instrument and target height from the
+#  observation data.
+
+use_plugin setup_height_plugin
+
+# "yes" to calculate setup heights
+
+calculate_setup_heights no
+
+# Observation attributes defining the instrument and target setups
+
+inst_trgt_setup_attributes inst_setup trgt_setup
+
+# Valid setup regex defines a regular expression identifying setups for which
+# a height may be calculated.  More than one valid_setup_regex option
+# may be specified.  If not are specified then any non-null setup is valid
+
+# valid_setup_regex TS.*
+
+# Invalid setup regex defines a regular expression identifying setups for 
+# which a height will not be calculated.  This is applied after
+# valid_setup_regex
+
+# invalid_setup_regex TS3.*
+
+# Fix setup heights defines heights that will be set but not calculated
+
+# fix_setup_height code value
