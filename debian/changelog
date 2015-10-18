@@ -1,3 +1,18 @@
+python-linz-adjustment (2.1.0-1) trusty; urgency=medium
+
+  * Simplifying plugin initiallisation calls
+  * Fixing tests for relative imports
+  * Fixing for pyaxis plugin
+  * Fixes for station locator and CSV
+  * Improving docstrings
+  * Restoring output of observation summary
+  * Adding reading attributes from CSV file
+  * Adding option for whitespace in data file, fixing test
+  * Updating example adjustment file
+  * Adding calculate station height plugin
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Mon, 19 Oct 2015 10:06:01 +1300
+
 python-linz-adjustment (2.0.0-1) trusty; urgency=medium
 
   * Fixing initial tests
