@@ -253,8 +253,10 @@ class Adjustment( object ):
         # Then in the Adjustment directory.  Search relative to the
         # base directory
         adjmodpath=os.path.dirname(os.path.abspath(__file__))
-        path1=os.path.dirname(adjmodpath)
         basemod=os.path.basename(adjmodpath)
+        path1=os.path.dirname(adjmodpath)
+        basemod=os.path.basename(path1)+'.'+basemod
+        path1=os.path.dirname(path1)
         module=None
         for name in [origname,altname]:
             sys.path.insert(0,path0)
@@ -278,6 +280,7 @@ class Adjustment( object ):
             raise RuntimeError('Cannot load Adjustment plugin module '+name)
         added=False
         for item in dir(module):
+            print("Trying {0}".format(item))
             if item.startswith('_'):
                 continue
             value=getattr(module,item)
@@ -558,8 +561,11 @@ class Adjustment( object ):
                 used[obsval.trgtstn]=1
         used={code:1 for code in used.keys() if self.stations.get(code) is not None}
         if not includeFixed:
-            for code in self.options.fixedStations:
-                used.pop(code,None)
+            if '*' in self.options.fixedStations:
+                used={}
+            else:
+                for code in self.options.fixedStations:
+                    used.pop(code,None)
         return used
 
     def missingStationList( self, clean=False ):
@@ -1233,7 +1239,7 @@ class Adjustment( object ):
         if self.options.debugObservationEquations:
            self.writeObservationEquations()
 
-        converged=False
+        converged=True
         for i in range(options.maxIterations):
             converged,coordUpdate,code=self.runOneIteration()
             self.write("Iteration {0}: max coord change {1:.4f}m at {2}\n".format(i,coordUpdate,code))

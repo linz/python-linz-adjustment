@@ -92,7 +92,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'snappy=LINZ.Geodetic.Adjustment.Adjustment:main',
+            'snappy=LINZ.Geodetic.Adjustment:Adjustment.main',
         ],
     },
 )
