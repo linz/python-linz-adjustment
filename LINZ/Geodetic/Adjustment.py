@@ -347,7 +347,7 @@ class Adjustment( object ):
         self.options.setupOptions(
             # File names
             listingFile=None,
-            stationFile=None,
+            stationFiles=[],
             dataFiles=[],
             outputStationFile=None,
             outputResidualFile=None,
@@ -400,7 +400,7 @@ class Adjustment( object ):
         elif item == 'listing_file':
             self.options.listingFile=value
         elif item == 'coordinate_file':
-            self.options.stationFile=value
+            self.options.stationFiles.append(value)
         elif item == 'data_file':
             parts=self.splitConfigValue(value)
             if parts is None:
@@ -506,11 +506,12 @@ class Adjustment( object ):
 
     def loadDataFiles( self ):
 
-        # Load the coordinate file
-        if self.options.stationFile is not None:
+        # Load the coordinate files
+        if len(self.options.stationFiles) > 0:
             self.write("\nInput coordinate file:\n")
-            self.write("  {0}\n".format(self.options.stationFile))
-            self.stations.loadCsv(self.options.stationFile)
+            for crdfile in self.options.stationFiles:
+                self.write("  {0}\n".format(crdfile))
+                self.stations.loadCsv(crdfile)
 
         # Load the data files
         reweight=self.options.reweightObsType
