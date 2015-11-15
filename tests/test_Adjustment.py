@@ -11,10 +11,12 @@ import os.path
 import StringIO
 from LINZ import fileunittest
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
+# Install path relative to LINZ to avoid potentially picking up installed modules...
+sys.path.insert(0,os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 from Geodetic import Station, Network, Adjustment
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+basedir=os.path.dirname(os.path.abspath(__file__))
+sys.path.append(basedir)
 from createobs import HA, AZ, SD, ZD, LV, GB, GX, Traverse
 
 class AdjustmentTestCase( fileunittest.TestCase ):
@@ -23,6 +25,8 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         st.setXYZ( st.xyz() + dxyz )
 
     def runAdjustment( self, test, adj, checkListing=True, checkGeoid=False ):
+        global basedir
+        basepath=basedir
         outputfile=StringIO.StringIO()
         try:
             adj.setOutputFile(outputfile)
@@ -30,8 +34,14 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         finally:
             output=outputfile.getvalue()
             outputfile.close()
+            output=output.replace(basedir,'')
         if checkListing:
             self.check(test+': Output',output)
+        # Clean directory references
+        for o in adj.observations:
+            for obs in o.obsvalues:
+                if 'source' in obs.attributes:
+                    obs.attributes['source']=obs.attributes['source'].replace(basedir,'')
         self.check(test+': Obs',adj.observations)
         for s in adj.stations.stations():
             self.check(test+': Station {0} coordinates'.format(s.code()),s.llh())
@@ -202,7 +212,8 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         '''
         Read CSV file attributes
         '''
-        df=os.path.join(os.path.dirname(__file__),'data','testadj1.csv')
+        global basedir
+        df=os.path.join(basedir,'data','testadj1.csv')
         st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
         st2=Station.Station('ST2',llh=(171.35,-44.82,20.0))
         net=Network.Network()
@@ -222,7 +233,8 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         '''
         Height setup calculator
         '''
-        df=os.path.join(os.path.dirname(__file__),'data','testadj1.csv')
+        global basedir
+        df=os.path.join(basedir,'data','testadj1.csv')
         st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
         st2=Station.Station('ST2',llh=[ 171.0024646771,  -45.000160237 ,   15.9343333328])
         net=Network.Network()

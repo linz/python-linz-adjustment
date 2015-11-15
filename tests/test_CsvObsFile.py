@@ -9,7 +9,7 @@ import StringIO
 import os.path
 from LINZ import fileunittest
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
+sys.path.insert(0,os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 from Geodetic import CsvObsFile
 
 test1az='''
@@ -94,6 +94,7 @@ class CsvObsFileTestCase( fileunittest.TestCase ):
         global printAllResults
         source=StringIO.StringIO(input.lstrip())
         result=''
+        print("READER:",CsvObsFile.Reader.__module__)
         for obs in CsvObsFile.read(source,attributes=attributes,colnames=colnames):
             result=result+"\n"+str(obs)
         self.check(varname,result)

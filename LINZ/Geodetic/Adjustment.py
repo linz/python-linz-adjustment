@@ -252,35 +252,39 @@ class Adjustment( object ):
 
         # Then in the Adjustment directory.  Search relative to the
         # base directory
-        adjmodpath=os.path.dirname(os.path.abspath(__file__))
-        basemod=os.path.basename(adjmodpath)
-        path1=os.path.dirname(adjmodpath)
-        basemod=os.path.basename(path1)+'.'+basemod
-        path1=os.path.dirname(path1)
+        path1=os.path.dirname(os.path.abspath(__file__))
+        packages=Adjustment.__module__.split('.')[:-1]
+        for package in packages:
+            path1=os.path.dirname(path1)
+        packages='.'.join(packages)
         module=None
+
         for name in [origname,altname]:
-            sys.path.insert(0,path0)
-            sys.path.insert(0,'.')
+            oldpath=sys.path
             try:
-                module=__import__(name,fromlist=['*'])
-            except ImportError:
-                pass
-            sys.path.pop(0)
-            if module is not None:
-                break
-            sys.path.insert(0,path1)
-            try:
-                module=__import__(basemod+'.'+name,fromlist=['*'])
-            except ImportError:
-                pass
-            sys.path.pop(0)
-            if module is not None:
-                break
+                sys.path[:]=[path0]
+                try:
+                    module=__import__(name,fromlist=['*'])
+                except ImportError:
+                    pass
+                if module is not None:
+                    break
+                sys.path[:]=[path1]
+                try:
+                    modname=name
+                    if packages:
+                        modname=packages+'.'+modname
+                    module=__import__(modname,fromlist=['*'])
+                except ImportError:
+                    pass
+                if module is not None:
+                    break
+            finally:
+                sys.path[:]=oldpath
         if module is None:
             raise RuntimeError('Cannot load Adjustment plugin module '+name)
         added=False
         for item in dir(module):
-            print("Trying {0}".format(item))
             if item.startswith('_'):
                 continue
             value=getattr(module,item)
@@ -350,12 +354,12 @@ class Adjustment( object ):
             stationFiles=[],
             dataFiles=[],
             outputStationFile=None,
+            outputStationFileGeodetic=None,
             outputResidualFile=None,
 
             # Station options
             fixedStations=[],
             acceptStations=[],
-            rejectStations=[],
             reweightObsType={},
             ignoreMissingStations=False,
 
@@ -416,17 +420,25 @@ class Adjustment( object ):
             self.options.dataFiles.append(
                 {'filename':filename,'attributes':attributes})
         elif item == 'output_coordinate_file':
+            if value.startswith('geodetic '):
+                self.options.outputStationFileGeodetic=True
+                value=value[9:].strip()
+            elif value.startswith('xyz '):
+                self.options.outputStationFileGeodetic=True
+                value=value[4:].strip()
             self.options.outputStationFile=value
         elif item == 'residual_csv_file':
             self.options.outputResidualFile=value
 
         # Station selection
         elif item == 'fix':
-            self.options.fixedStations.extend(value.split())
+            self.options.fixedStations.extend(((True,v) for v in value.split()))
+        elif item == 'free':
+            self.options.fixedStations.extend(((False,v) for v in value.split()))
         elif item == 'accept':
-            self.options.acceptStations.extend(value.split())
+            self.options.acceptStations.extend(((True,v) for v in value.split()))
         elif item == 'reject':
-            self.options.rejectStations.extend(value.split())
+            self.options.acceptStations.extend(((False,v) for v in value.split()))
         elif item == 'ignore_missing_stations':
             self.options.ignoreMissingStations=Options.boolOption(value)
 
@@ -560,13 +572,10 @@ class Adjustment( object ):
             for obsval in o.obsvalues:
                 used[obsval.inststn]=1
                 used[obsval.trgtstn]=1
-        used={code:1 for code in used.keys() if self.stations.get(code) is not None}
+        used={code:1 for code in used if self.stations.get(code) is not None}
         if not includeFixed:
-            if '*' in self.options.fixedStations:
-                used={}
-            else:
-                for code in self.options.fixedStations:
-                    used.pop(code,None)
+            fixedstn=self.useStationFunc(self.options.fixedStations,False)
+            used={code:1 for code in used if not fixedstn(code)}
         return used
 
     def missingStationList( self, clean=False ):
@@ -575,30 +584,70 @@ class Adjustment( object ):
         for obs in self.observations:
             for o in obs.obsvalues:
                 if not good_station(o.inststn):
-                    missing.add(o.inststn)
+                    missing.add(False(o.inststn))
                 if not good_station(o.trgtstn):
-                    missing.add(o.trgtstn)
+                    missing.add((False,o.trgtstn))
         if clean:
-            self.filterObsByStation(remove=missing)
+            self.filterObsByStation(missing)
         return missing
 
-    def filterObsByStation( self, keep=None, remove=None ):
+    def useStationFunc( self, uselist, default=True ):
         '''
-        Filter observations by station, can either specify stations to
+        Create a function to test a station code against a set of
+        criteria.  The criteria are defined in a uselist which is
+        a list of pairs (use,code).  
+        
+          use is boolean, signifying the station is to be used or not.  
+        
+          code is one of:
+            *       meaning all codes
+            re:exp  meaning codes matching the regular expression re
+            code    a specific station code.  Note - to enter a specific code
+                    starting re:, prefix the code with ':'
+
+        The default status applies if there are no criteria in the list.
+        Otherwise the default status is the opposite of the first criteria
+        in the list (ie if it is True, then the default is False, and vice versa)
+
+        All station code matching is case insensitive
+        '''
+        if not uselist:
+            return lambda code: default
+
+        def usefunc( use, code ):
+            code=code.lower()
+            if code == '*':
+                f=lambda c,s: use
+            elif code.startswith('re:'):
+                codere=re.compile('^'+code[3:]+'$',re.I)
+                f=lambda c,s: use if codere.match(c) else s
+            else:
+                if code.startswith(':'):
+                    code=code[1:]
+                f=lambda c,s: use if c==code else s
+            return f
+
+        # If first action is to set status to True, then initial status must
+        # be false
+        startStatus=not uselist[0][0]
+        funcs=tuple(usefunc(use,code) for use,code in uselist)
+
+        def usestation( code ):
+            code=code.lower()
+            status=startStatus
+            for f in funcs: status=f(code,status)
+            return status
+        return usestation
+
+    def filterObsByStation( self, uselist ):
+        '''
+        Filter observations by station.  Takes a list of stations
         keep or stations to remove, or both (though that doesn't make 
         much sense!)
         '''
-        kfunc=None
-        rfunc=None
-        if keep is not None and len(keep) > 0:
-            kfunc=lambda obs,ov: ov.inststn in keep and ov.trgtstn in keep
-        if remove is not None and len(remove) > 0:
-            rfunc=lambda obs,ov: not (ov.inststn in remove or ov.trgtstn in remove)
-        func=(rfunc if kfunc is None else
-              kfunc if rfunc is None else
-              lambda obs,ov: rfunc(obs,ov) and kfunc(obs,ov))
-        if func is not None:
-            self.filterObservations(func)
+        usestn=self.useStationFunc(uselist)
+        useobs=lambda obs,ov: usestn(ov.inststn) and usestn(ov.trgtstn)
+        self.filterObservations(useobs)
 
     def filterObservations( self, select ):
         '''
@@ -1214,7 +1263,8 @@ class Adjustment( object ):
             self.writeResidualCsv(self.options.outputResidualFile)
 
         if self.options.outputStationFile is not None:
-            self.stations.writeCsv(self.options.outputStationFile)
+            self.stations.writeCsv(self.options.outputStationFile,
+                                   geodetic=self.options.outputStationFileGeodetic)
 
     def setup( self ):
         pass
@@ -1228,8 +1278,9 @@ class Adjustment( object ):
                 self.write("Ignoring missing stations:\n")
                 for stn in missing:
                     self.write("  {0}\n".format(stn))
-                self.filterObsByStation(remove=missing)
-        self.filterObsByStation(keep=options.acceptStations,remove=options.rejectStations)
+                self.filterObsByStation(((False,m) for m in missing) )
+        if options.acceptStations:
+            self.filterObsByStation(options.acceptStations)
 
     def calculateSolution( self ):
         options=self.options

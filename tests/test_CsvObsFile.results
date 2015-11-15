@@ -80,7 +80,7 @@ SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,source=input:2
 >>>> test4a_result
 AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,daytime=night source=input:1 test_attr=test
 
-SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,daytime=day source=input:2 test_attr=None
+SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,daytime=day source=input:2 test_attr=
 >>>>
 >>>> test5_result
 SD,ST1,ST2,0.0000,0.0000,95.2365,0.0015,source=input:1

@@ -306,7 +306,7 @@ HA,ST3,ST4,0.0000,0.0000,206.8714,0.0010
 ======================================================================
 >>>> test_250__output 
 Observation files:
-  data/testadj1.csv
+  /data/testadj1.csv
 
 Observation summary:
   2 Azimuth observations
@@ -401,16 +401,16 @@ B            0.9500   0.0025
 
 C           -0.0500   0.0025
 
->>>> test_250__obs [AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=data/testadj1.csv:1
-, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=data/testadj1.csv:2
-, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=data/testadj1.csv:3
-, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=data/testadj1.csv:4
-, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=data/testadj1.csv:5
-, AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=data/testadj1.csv:1
-, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=data/testadj1.csv:2
-, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=data/testadj1.csv:3
-, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=data/testadj1.csv:4
-, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=data/testadj1.csv:5
+>>>> test_250__obs [AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=/data/testadj1.csv:1
+, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=/data/testadj1.csv:2
+, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=/data/testadj1.csv:3
+, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=/data/testadj1.csv:4
+, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=/data/testadj1.csv:5
+, AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=/data/testadj1.csv:1
+, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=/data/testadj1.csv:2
+, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=/data/testadj1.csv:3
+, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=/data/testadj1.csv:4
+, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=/data/testadj1.csv:5
 ]
 >>>> test_250__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
 >>>> test_250__station_st2_coordinates array([ 171.0024648196,  -45.0001602463,   15.550999999 ])

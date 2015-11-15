@@ -126,7 +126,7 @@ class Reader( object ):
                     colno=headercolumns.index(f.name)
                 except:
                     if not f.optional:
-                        raise RuntimeError(filename+' is missing required field '+filename)
+                        raise RuntimeError(filename+' is missing required field '+f.name)
                 colnos.append(colno)
             self._header=header
             self._colnos=colnos

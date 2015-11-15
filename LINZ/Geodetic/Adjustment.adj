@@ -33,8 +33,23 @@ residual_csv_file wark2015lt-residuals.csv
 # ========================================================
 # Station constraint options
 #
-# Stations can be fixed, as well as accepted or rected
+# Stations can be fixed or free, as well as accepted or rejected
+# Observations using rejected stations are removed from the observation data set
+# Coordinates are not calculated for stations that are fixed
+# 
+# By default all status are accepted and all used stations are free.
+# If the first command is accept or free, then the corresponding
+# default is reversed (ie all stations are rejected, all used stations 
+# are fixed respectively).  
+#
+# Station can be identified by a code, by '*' meaning all stations, or
+# by 're:exp' to meaning stations matching regular expression exp.  A leading
+# ':' on a code is ignored (to allow entering a code that actually begins
+# 're:'!)
+
 # fix code code ...
+# free code code ...
+#
 # accept code code ...
 # reject code code ...
 
