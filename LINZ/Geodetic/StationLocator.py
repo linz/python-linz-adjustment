@@ -261,8 +261,8 @@ class StationLocator( object ):
             self.write("\nCannot locate {0} remaining stations:\n".format(len(self.unlocated)));
             for code in sorted([s.code for s in self.unlocated]):
                 self.write("  {0}\n".format(code))
-            raise RuntimeError("Cannot locate {0} remaining stations"
-                               .format(len(self.unlocated)))
+            #raise RuntimeError("Cannot locate {0} remaining stations"
+            #                   .format(len(self.unlocated)))
         self.updateNetwork()
 
     def getStation( self, code ):
