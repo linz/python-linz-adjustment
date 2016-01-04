@@ -260,7 +260,7 @@ class Adjustment( object ):
         module=None
 
         for name in [origname,altname]:
-            oldpath=sys.path
+            oldpath=list(sys.path)
             try:
                 sys.path[:]=[path0]
                 try:
@@ -356,6 +356,7 @@ class Adjustment( object ):
             outputStationFile=None,
             outputStationFileGeodetic=None,
             outputResidualFile=None,
+            outputResidualFileOptions={},
 
             # Station options
             fixedStations=[],
@@ -394,6 +395,16 @@ class Adjustment( object ):
             parts.append(item)
         return parts
 
+    def _splitStationList( self, stnlist ):
+        for s in stnlist.split():
+            if s.startswith('@'):
+                n=Network()
+                n.readCsv(s[1:])
+                for s in n:
+                    yield s.code
+            else:
+                yield s
+
     def setConfigOption( self, item, value ):
         item=item.lower()
         value=value.strip()
@@ -428,17 +439,25 @@ class Adjustment( object ):
                 value=value[4:].strip()
             self.options.outputStationFile=value
         elif item == 'residual_csv_file':
-            self.options.outputResidualFile=value
-
+            parts=self.splitConfigValue(value)
+            self.options.outputResidualFile=parts[0]
+            options={}
+            for p in parts[1:]:
+                m = re.match(r'^(\w+)\=(.+)$',p)
+                if m:
+                    options[m.group(1)]=m.group(2)
+                else:
+                    raise RuntimeError("Invalid data_file attribute "+p)
+                self.options.outputResidualFileOptions=options
         # Station selection
         elif item == 'fix':
-            self.options.fixedStations.extend(((True,v) for v in value.split()))
+            self.options.fixedStations.extend(((True,v) for v in self._splitStationList(value)))
         elif item == 'free':
-            self.options.fixedStations.extend(((False,v) for v in value.split()))
+            self.options.fixedStations.extend(((False,v) for v in self._splitStationList(value)))
         elif item == 'accept':
-            self.options.acceptStations.extend(((True,v) for v in value.split()))
+            self.options.acceptStations.extend(((True,v) for v in self._splitStationList(value)))
         elif item == 'reject':
-            self.options.acceptStations.extend(((False,v) for v in value.split()))
+            self.options.acceptStations.extend(((False,v) for v in self._splitStationList(value)))
         elif item == 'ignore_missing_stations':
             self.options.ignoreMissingStations=Options.boolOption(value)
 
@@ -560,6 +579,8 @@ class Adjustment( object ):
                     if obs.covariance is not None:
                         obs.covariance *= factor*factor
                 self.observations.append(obs)
+        if self.options.acceptStations:
+            self.filterObsByStation(self.options.acceptStations)
 
     def usedStations( self, includeFixed=True ):
         '''
@@ -584,11 +605,13 @@ class Adjustment( object ):
         for obs in self.observations:
             for o in obs.obsvalues:
                 if not good_station(o.inststn):
-                    missing.add(False(o.inststn))
+                    missing.add((False,o.inststn))
                 if not good_station(o.trgtstn):
                     missing.add((False,o.trgtstn))
         if clean:
             self.filterObsByStation(missing)
+        missing=list(missing)
+        missing.sort( key=lambda x: x[1] )
         return missing
 
     def useStationFunc( self, uselist, default=True ):
@@ -633,6 +656,8 @@ class Adjustment( object ):
         funcs=tuple(usefunc(use,code) for use,code in uselist)
 
         def usestation( code ):
+            if code is None:
+                return True
             code=code.lower()
             status=startStatus
             for f in funcs: status=f(code,status)
@@ -1218,14 +1243,22 @@ class Adjustment( object ):
             rms=math.sqrt(ssr/nres) if nres > 0 else 1.0
             self.write("  {0:<10} {1:4d} {2:8.4f}\n".format(key,nres,rms))
 
-    def writeResidualCsv( self, csvfile ):
+    def writeResidualCsv( self, csvfile, options={} ):
         '''
         Dumps residuals of scalar observations to a CSV file
         '''
         import csv
+
+        attributes=[]
+        if 'attributes' in options:
+            attdef=options['attributes']
+            attributes=[x for x in re.split(r'\W+',attdef) if len(x) > 0]
+
         with open(csvfile,"wb") as csvf:
             csvw=csv.writer(csvf)
-            csvw.writerow(('fromstn','tostn','fromhgt','tohgt','obstype','obsset','value','error','calcval','residual','reserr','stdres'))
+            cols=['fromstn','tostn','fromhgt','tohgt','obstype','obsset','value','error','calcval','residual','reserr','stdres']
+            cols.extend(attributes)
+            csvw.writerow(cols)
             lastset=0
             for obs,res,rescvr in self.residuals():
                 if obs.obstype.nvalue > 1:
@@ -1243,7 +1276,8 @@ class Adjustment( object ):
                         reserr=math.sqrt(rescvr)
                     else:
                         reserr=None
-                    csvw.writerow((
+
+                    data=[
                         obsv.inststn,
                         obsv.trgtstn,
                         obsv.insthgt,
@@ -1256,11 +1290,13 @@ class Adjustment( object ):
                         vformat.format(resv),
                         eformat.format(reserr) if reserr is not None else None,
                         seformat.format(abs(resv/reserr)) if reserr is not None else None
-                    ))
+                        ]
+                    data.extend([obsv.attributes.get(a) for a in attributes])
+                    csvw.writerow(data)
         
     def writeOutputFiles( self ):
         if self.options.outputResidualFile is not None:
-            self.writeResidualCsv(self.options.outputResidualFile)
+            self.writeResidualCsv(self.options.outputResidualFile,self.options.outputResidualFileOptions)
 
         if self.options.outputStationFile is not None:
             self.stations.writeCsv(self.options.outputStationFile,
@@ -1276,9 +1312,9 @@ class Adjustment( object ):
             missing=self.missingStationList()
             if len(missing) > 0:
                 self.write("Ignoring missing stations:\n")
-                for stn in missing:
+                for use,stn in missing:
                     self.write("  {0}\n".format(stn))
-                self.filterObsByStation(((False,m) for m in missing) )
+                self.filterObsByStation(missing)
         if options.acceptStations:
             self.filterObsByStation(options.acceptStations)
 

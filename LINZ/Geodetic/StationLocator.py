@@ -248,21 +248,20 @@ class StationLocator( object ):
         self.buildObservationIndex()
         self.locateInitialStations()
         nunlocated=len( self.unlocated )
-        if len(self.unlocated) == 0:
-            return
-        while self.tryLocateStation() or self.tryFixAngle():
-            # Should not be true - check to avoid infinite loop...
-            if len(self.unlocated) >= nunlocated:
-                raise RuntimeError("tryLocateStation or tryFixAngle failed to fix stations")
-            nunlocated=len( self.unlocated )
-            if nunlocated == 0:
-                break
         if len(self.unlocated) > 0:
-            self.write("\nCannot locate {0} remaining stations:\n".format(len(self.unlocated)));
-            for code in sorted([s.code for s in self.unlocated]):
-                self.write("  {0}\n".format(code))
-            #raise RuntimeError("Cannot locate {0} remaining stations"
-            #                   .format(len(self.unlocated)))
+            while self.tryLocateStation() or self.tryFixAngle():
+                # Should not be true - check to avoid infinite loop...
+                if len(self.unlocated) >= nunlocated:
+                    raise RuntimeError("tryLocateStation or tryFixAngle failed to fix stations")
+                nunlocated=len( self.unlocated )
+                if nunlocated == 0:
+                    break
+            if len(self.unlocated) > 0:
+                self.write("\nCannot locate {0} remaining stations:\n".format(len(self.unlocated)));
+                for code in sorted([s.code for s in self.unlocated]):
+                    self.write("  {0}\n".format(code))
+                #raise RuntimeError("Cannot locate {0} remaining stations"
+                #                   .format(len(self.unlocated)))
         self.updateNetwork()
 
     def getStation( self, code ):
@@ -493,6 +492,8 @@ class StationLocator( object ):
     def updateNetwork( self ):
         nstations=0
         for s in self.stations.values():
+            if s in self.unlocated:
+                continue
             if s.networkStation is None:
                 self.write("   Adding network station {0}\n".format(s.code))
                 s.networkStation=NetworkStation(s.code,xyz=s.xyz)
