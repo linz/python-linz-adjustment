@@ -182,6 +182,23 @@ class Station( object ):
         diff /= dist
         return dist, -diff, diff
 
+    def horizontalDistanceTo( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=None, ddxyz=False, offsettype=None ):
+        '''
+        Calculate distance to trgtstn point and optionally its 
+        differentials wrt X,Y,Z coordinates of base point and target
+        point
+        '''
+        diff=self.vectorTo(trgtstn, instofst, trgtofst, offsettype=offsettype)
+        # Want the mean vertical vector...
+        enu=self.enu()[2]+trgtstn.enu()[2]
+        enu /= np.sqrt(np.vdot(diff,diff))
+        diff = diff - enu * np.vdot(diff,enu)
+        dist=np.sqrt(np.vdot(diff,diff))
+        if not ddxyz:
+            return dist
+        diff /= dist
+        return dist, -diff, diff
+
     def azimuthTo( self, trgtstn=None, instofst=None, trgtofst=None, refcoef=None, ddxyz=False, geodetic=False, offsettype=None ):
         '''
         Calculate bearing (degrees) to trgtstn point and its 

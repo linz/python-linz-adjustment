@@ -560,15 +560,33 @@ class Adjustment( object ):
                 self.write("\nObservation files:\n")
                 first=False
             self.write("  {0}\n".format(filename))
-            if filename.lower().endswith('.msr'):
+            filetype=''
+            filetype=''
+            match=re.match(r'^(\w+)\:(.*)$',filename)
+            if match:
+                filetype=match.group(1).lower()
+                filename=match.group(2)
+            if filetype == '':
+                match=re.search(r'\.(\w+)$',filename)
+                if match:
+                    filetype=match.group(1).lower()
+            if filetype == '' and re.search(r'\.snx(\.gz)?$',filename,re.I):
+                filetype = 'snx'
+            if filetype == 'msr':
                 from . import MsrFile
                 reader=MsrFile.read
-            elif re.search(r'\.snx(\.gz)?$',filename,re.I):
+            elif filetype == 'snx':
                 from . import SinexObsFile
                 reader=SinexObsFile.read
-            else:
+            elif filetype == 'csvhor':
+                from . import CsvObsFile
+                reader=CsvObsFile.readConvertToHorDist
+            elif filetype == 'csv':
                 from . import CsvObsFile
                 reader=CsvObsFile.read
+            else:
+                raise RuntimeError('Invalid observation file type '+filetype)
+
             for obs in reader(filename,**attributes):
                 typecode=obs.obstype.code
                 if typecode in reweight:

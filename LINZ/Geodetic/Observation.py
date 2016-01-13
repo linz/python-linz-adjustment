@@ -85,6 +85,7 @@ class Observation( object ):
         'HA': ObservationType('HA','Horizontal angle',1,Station.azimuthTo),
         'AZ': ObservationType('AZ','Azimuth',1,Station.geodeticAzimuthTo),
         'SD': ObservationType('SD','Slope distance',1,Station.distanceTo),
+        'HD': ObservationType('HD','Horizontal distance',1,Station.horizontalDistanceTo),
         'ZD': ObservationType('ZD','Zenith distance',1,Station.zenithDistanceTo),
         'LV': ObservationType('LV','Height difference',1,Station.heightDifferenceTo),
         'GX': ObservationType('GX','XYZ coordinate',3,Station.calcXYZ),

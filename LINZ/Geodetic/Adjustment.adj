@@ -15,6 +15,9 @@ listing_file WARK2015LT.lst
 #
 # data_file "filename" param=value param=value
 #
+# The filename can be preceded by a file type code and ':'
+# eg  csv:mydata.dat.  Valid file types are csv, msr,snx
+#
 # The param=value are passed directly to the observation file reader
 # function as named parameters.  For CSV files this allows specifying
 # additional observation attributes from CSV columns using 

@@ -156,7 +156,7 @@ class StationLocator( object ):
                     continue
                 # self.locator.write("Attempting to coordinate {0}\n".format(tostn.code))
                 obs=self.obs[tostn]
-                if 'SD' not in obs:
+                if 'SD' not in obs and 'HD' not in obs:
                     continue
 
                 # Work out an azimuth
@@ -187,11 +187,19 @@ class StationLocator( object ):
                     hgtdiff=np.mean([o.obsvalue.value for o in obs['LV']])
                 # Only use ZD if don't have levelled height difference
                 elif 'ZD' in obs:
-                    distance=np.mean([o.obsvalue.value for o in obs['SD']])
+                    slope=True
+                    distance=0.0
+                    if 'SD' in obs:
+                        distance=np.mean([o.obsvalue.value for o in obs['SD']])
+                        slope=True
+                    else:
+                        distance=np.mean([o.obsvalue.value for o in obs['HD']])
+                        slope=False
+
                     hgtdiffs=[]
                     for o in obs['ZD']:
                         angle=math.radians(o.obsvalue.value)
-                        sd=math.sin(angle)*distance
+                        sd=math.sin(angle)*distance if slope else distance
                         corr=sd/(2.0*(llh0[2]+MeanEarthRadius))
                         angle -= corr
                         hd=math.cos(angle)*distance
@@ -204,8 +212,8 @@ class StationLocator( object ):
                 if hgtdiff is None:
                     continue
 
-                hordists=[]
-                for o in obs['SD']:
+                hordists=[o.obsvalue.value for o in obs.get('HD',[])]
+                for o in obs.get('SD',[]):
                     vdist=hgtdiff
                     if o.reverse:
                         vdist=-vdist

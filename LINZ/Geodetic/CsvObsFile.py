@@ -5,8 +5,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import re
+import math
 from .CsvRecord import Reader
 from .Observation import Observation, ObservationValue
+
+approxEarthRadius=6371000.0
 
 def read( csvfile, colnames=None, attributes=None ):
     '''
@@ -45,6 +48,7 @@ def read( csvfile, colnames=None, attributes=None ):
          obstype? obsset? 
          value:float? error:float?
          ha_value:float? ha_error:float?
+         hd_value:float? hd_error:float?
          sd_value:float? sd_error:float?
          zd_value:float? zd_error:float?
          az_value:float? az_error:float?
@@ -67,6 +71,7 @@ def read( csvfile, colnames=None, attributes=None ):
     for collist in (
         'value error obstype',
         'ha_value ha_error',
+        'hd_value hd_error',
         'sd_value sd_error',
         'zd_value zd_error',
         'az_value az_error',
@@ -120,3 +125,42 @@ def read( csvfile, colnames=None, attributes=None ):
 
     if haobs is not None:
         yield haobs
+
+def readConvertToHorDist( csvfile, colnames=None, attributes=None ):
+    global approxEarthRadius
+    savedsd=None
+    lastsource=None
+    for obs in read( csvfile, colnames, attributes ):
+        type=obs.obstype.code
+        source=obs.obsvalues[0].attributes.get('source')
+        if source != lastsource:
+            lastsource=source
+            if savedsd is not None:
+                yield savedsd
+                savedsd=None
+        if type == 'SD' and savedsd is None:
+            savedsd = obs
+        elif type in ('ZD','LV') and savedsd is not None:
+            sdist=savedsd.obsvalues[0].value
+            hdiff=obs.obsvalues[0].value
+            if type == 'ZD':
+                zdist=math.radians(hdiff)
+                subtend=sdist*math.sin(zdist)/(2*approxEarthRadius)
+                hdiff=sdist*math.cos(zdist+subtend)
+                hdifferr=math.hypot(math.radians(obs.obsvalues[0].stderr)*sdist,
+                                    savedsd.obsvalues[0].stderr*subtend)
+                obs.obsvalues[0].value=hdiff
+                obs.obsvalues[0].stderr=hdifferr
+                obs.obstype=Observation.ObservationTypes['LV']
+            yield obs
+            hdist=math.sqrt(sdist*sdist-hdiff*hdiff)
+            subtend=hdist/(2*approxEarthRadius)
+            hdist += hdiff*subtend
+            savedsd.obsvalues[0].value=hdist
+            savedsd.obstype=Observation.ObservationTypes['HD']
+            yield savedsd
+            savedsd=None
+        else:
+            yield obs
+    if savedsd is not None:
+        yield savedsd
