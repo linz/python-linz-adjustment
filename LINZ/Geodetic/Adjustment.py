@@ -259,6 +259,7 @@ class Adjustment( object ):
         packages='.'.join(packages)
         module=None
 
+        modnames=set()
         for name in [origname,altname]:
             oldpath=list(sys.path)
             try:
@@ -266,23 +267,25 @@ class Adjustment( object ):
                 try:
                     module=__import__(name,fromlist=['*'])
                 except ImportError:
+                    modnames.add(name)
                     pass
                 if module is not None:
                     break
                 sys.path[:]=[path1]
+                modname=name
+                if packages:
+                    modname=packages+'.'+modname
                 try:
-                    modname=name
-                    if packages:
-                        modname=packages+'.'+modname
                     module=__import__(modname,fromlist=['*'])
                 except ImportError:
+                    modnames.add(modname)
                     pass
                 if module is not None:
                     break
             finally:
                 sys.path[:]=oldpath
         if module is None:
-            raise RuntimeError('Cannot load Adjustment plugin module '+name)
+            raise RuntimeError('Cannot load Adjustment plugin module '+name+'('+','.join(modnames)+')')
         added=False
         for item in dir(module):
             if item.startswith('_'):
@@ -714,7 +717,7 @@ class Adjustment( object ):
                 continue
             covariance=obs.covariance
             if covariance is not None:
-                covariance=covariance[goodrows,goodrows]
+                covariance=covariance[goodrows,:][:,goodrows]
             o=Observation(obs.obstype.code,obsdate=obs.obsdate,obsvalue=goodvalues,covariance=covariance)
             goodobs.append(o)
         self.write("Filtering {0} observations to {1}\n".format(len(self.observations),len(goodobs)))
