@@ -1,4 +1,5 @@
 *.pyc
+.noseids
 build
 dist
 linz_adjustment.egg-info
