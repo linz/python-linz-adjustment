@@ -153,6 +153,11 @@ class SetupHeightPlugin( Plugin ):
                 write("\n{0:<10s} {1:8.4f} {2:>8s}\n".format
                       (s,value,"-    "))
             else:
-                stderr=math.sqrt(covar[paramno,paramno])
-                write("\n{0:<10s} {1:8.4f} {2:8.4f}\n".format
-                      (s,value,stderr))
+                try:
+                    stderr=math.sqrt(covar[paramno,paramno])
+                    write("\n{0:<10s} {1:8.4f} {2:8.4f}\n".format
+                        (s,value,stderr))
+                except ValueError:
+                    stderr=covar[paramno,paramno]
+                    write("\n{0:<10s} {1:8.4f} ({2:7.4f})\n".format
+                        (s,value,stderr))
