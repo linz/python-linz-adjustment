@@ -460,7 +460,7 @@ class Adjustment( object ):
                     self.options.outputStationFileGeodetic=False
                 elif option == 'covariances':
                     self.options.outputStationCovariances=True
-                elif option == 'ellipses':
+                elif option == 'ellipses' or option == 'error_ellipses':
                     self.options.outputStationErrorEllipses=True
                 elif option == 'offsets':
                     self.options.outputStationOffsets=True
@@ -1475,7 +1475,7 @@ class Adjustment( object ):
                     data['offset_n']=offset[1]
                     data['offset_u']=offset[2]
             for c in data:
-                data[c]="{0:.4f}".format(data[c])
+                data[c]="{0:.5f}".format(data[c])
 
             return [data.get(c) for c in columns]
 
