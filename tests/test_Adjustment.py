@@ -21,8 +21,8 @@ from createobs import HA, AZ, SD, ZD, LV, GB, GX, Traverse
 
 class AdjustmentTestCase( fileunittest.TestCase ):
 
-    def offsetStation( self, st, dxyz ):
-        st.setXYZ( st.xyz() + dxyz )
+    def offsetStation( self, st, denu ):
+        st.setXYZ( st.xyz() + st.enu().T.dot(denu) )
 
     def runAdjustment( self, test, adj, checkListing=True, checkGeoid=False, outputfiles={} ):
         global basedir
@@ -183,9 +183,30 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         adj.setConfig('output_coordinate_file',cfname)
         self.runAdjustment('Test 50',adj,outputfiles={'coords':cfname})
 
-    def test_051_output_coord_covar( self ):
+    def test_051_output_coord_offsets( self ):
         '''
-        With station heights
+        Output offset
+        '''
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=(171.001,-44.995,20.0))
+        obs=[]
+        obs.append(AZ(st1,st2,0.0015))
+        obs.append(SD(st1,st2,0.005))
+        obs.append(LV(st1,st2,0.025))
+        self.offsetStation(st2,[0.5,1.0,-0.3])
+        net=Network.Network()
+        net.addStation(st1)
+        net.addStation(st2)
+        adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
+        adj.setConfig('fix','ST1')
+        adj.setConfig('refraction_coefficient','0.0')
+        cfname=self.outputFilePath('test53_coords.csv')
+        adj.setConfig('output_coordinate_file','offsets '+cfname)
+        self.runAdjustment('Test 51',adj,outputfiles={'coords':cfname})
+
+    def test_052_output_coord_covar( self ):
+        '''
+        Output covariance
         '''
         st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
         st2=Station.Station('ST2',llh=(171.001,-44.995,20.0))
@@ -201,7 +222,61 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         adj.setConfig('refraction_coefficient','0.0')
         cfname=self.outputFilePath('test51_coords.csv')
         adj.setConfig('output_coordinate_file','covariances '+cfname)
-        self.runAdjustment('Test 51',adj,outputfiles={'coords':cfname})
+        self.runAdjustment('Test 52',adj,outputfiles={'coords':cfname})
+
+    def test_053_output_coord_ellipse( self ):
+        '''
+        Output ellipses
+        '''
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=(171.001,-44.995,20.0))
+        obs=[]
+        obs.append(AZ(st1,st2,0.0015))
+        obs.append(SD(st1,st2,0.005))
+        obs.append(LV(st1,st2,0.025))
+        net=Network.Network()
+        net.addStation(st1)
+        net.addStation(st2)
+        adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
+        adj.setConfig('fix','ST1')
+        adj.setConfig('refraction_coefficient','0.0')
+        cfname=self.outputFilePath('test52_coords.csv')
+        adj.setConfig('output_coordinate_file','ellipses '+cfname)
+        self.runAdjustment('Test 53',adj,outputfiles={'coords':cfname})
+
+    def test_060_float_station( self ):
+        '''
+        Float station
+        '''
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        obs=[]
+        obs.append(GX(st1,error=0.5))
+        #self.offsetStation(st1,[0.5,1.0,-0.3])
+        net=Network.Network()
+        net.addStation(st1)
+        adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
+        adj.setConfig('float','0.05 0.10 ST1')
+        adj.setConfig('debug_observation_equations','yes')
+        cfname=self.outputFilePath('test60_coords.csv')
+        adj.setConfig('output_coordinate_file','ellipses '+cfname)
+        self.runAdjustment('Test 60',adj,outputfiles={'coords':cfname})
+
+    def test_061_float_station( self ):
+        '''
+        Float station
+        '''
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        obs=[]
+        obs.append(GX(st1,error=0.05))
+        self.offsetStation(st1,[10.0,1.0,20.0])
+        net=Network.Network()
+        net.addStation(st1)
+        adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
+        adj.setConfig('float','0.05 0.10 ST1')
+        adj.setConfig('debug_observation_equations','yes')
+        cfname=self.outputFilePath('test61_coords.csv')
+        adj.setConfig('output_coordinate_file','offsets '+cfname)
+        self.runAdjustment('Test 61',adj,outputfiles={'coords':cfname})
 
     def test_100_locator_plugin( self ):
         '''

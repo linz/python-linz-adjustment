@@ -16,7 +16,7 @@ from numpy import linalg
 
 from .Network import Network
 from .Station import Station
-from .Observation import Observation
+from .Observation import Observation, ObservationValue
 
 '''
 Module to adjust network coordinates.  
@@ -195,6 +195,7 @@ class Adjustment( object ):
 
         self.stations=stations
         self.observations=observations
+        self.originalXyz={}
 
         self.options=Options()
         self.setupOptions()
@@ -367,12 +368,15 @@ class Adjustment( object ):
             outputStationFile=None,
             outputStationFileGeodetic=None,
             outputStationCovariances=False,
+            outputStationErrorEllipses=False,
+            outputStationOffsets=False,
             outputResidualFile=None,
             outputResidualFileOptions={},
 
             # Station options
             fixedStations=[],
             acceptStations=[],
+            floatStations=[],
             reweightObsType={},
             ignoreMissingStations=False,
 
@@ -445,7 +449,7 @@ class Adjustment( object ):
                 {'filename':filename,'attributes':attributes})
         elif item == 'output_coordinate_file':
             while True:
-                m=re.match(r'(geodetic|xyz|covariances)\s+(\S.*)$',value,re.I)
+                m=re.match(r'(\w+)\s+(\S.*)$',value,re.I)
                 if not m:
                     break
                 option=m.group(1).lower()
@@ -453,9 +457,17 @@ class Adjustment( object ):
                 if option == 'geodetic':
                     self.options.outputStationFileGeodetic=True
                 elif option == 'xyz':
-                    self.options.outputStationFileGeodetic=True
+                    self.options.outputStationFileGeodetic=False
                 elif option == 'covariances':
                     self.options.outputStationCovariances=True
+                elif option == 'ellipses':
+                    self.options.outputStationErrorEllipses=True
+                elif option == 'offsets':
+                    self.options.outputStationOffsets=True
+                elif option == 'to':
+                    break
+                else:
+                    raise RuntimeError('Invalid output_coordinate_file option '+option)
             self.options.outputStationFile=value
         elif item == 'residual_csv_file':
             parts=self.splitConfigValue(value)
@@ -477,6 +489,15 @@ class Adjustment( object ):
             self.options.acceptStations.extend(((True,v) for v in self._splitStationList(value)))
         elif item == 'reject':
             self.options.acceptStations.extend(((False,v) for v in self._splitStationList(value)))
+        elif item == 'float':
+            try:
+                hfs,vfs,slist=value.split(None,2)
+                hfloat=float(hfs)
+                vfloat=float(vfs)
+                self.options.floatStations.extend((((hfloat,vfloat),v) for v in self._splitStationList(value)))
+            except:
+                raise RuntimeError("Invalid float option: "+value)
+                
         elif item == 'ignore_missing_stations':
             self.options.ignoreMissingStations=Options.boolOption(value)
 
@@ -565,6 +586,16 @@ class Adjustment( object ):
                 self.write("  {0}\n".format(crdfile))
                 self.stations.loadCsv(crdfile)
 
+        # Save initial station coordinates
+        originalXyz={}
+        for stn in self.stations.stations():
+            try:
+                xyz=stn.xyz()
+                originalXyz[stn.code()]=np.array(xyz)
+            except:
+                pass
+        self.originalXyz=originalXyz
+
         # Load the data files
         reweight=self.options.reweightObsType
         if len(reweight) > 0:
@@ -618,6 +649,7 @@ class Adjustment( object ):
                     if obs.covariance is not None:
                         obs.covariance *= factor*factor
                 self.observations.append(obs)
+
         if self.options.acceptStations:
             self.filterObsByStation(self.options.acceptStations)
 
@@ -670,6 +702,7 @@ class Adjustment( object ):
         The default status applies if there are no criteria in the list.
         Otherwise the default status is the opposite of the first criteria
         in the list (ie if it is True, then the default is False, and vice versa)
+        or None if it is not True or False
 
         All station code matching is case insensitive
         '''
@@ -691,7 +724,8 @@ class Adjustment( object ):
 
         # If first action is to set status to True, then initial status must
         # be false
-        startStatus=not uselist[0][0]
+        status0=uselist[0][0]
+        startStatus=False if status0 is True else True if status0 is False else None
         funcs=tuple(usefunc(use,code) for use,code in uselist)
 
         def usestation( code ):
@@ -1124,7 +1158,7 @@ class Adjustment( object ):
         N=self.covariance()
         mapping=self.coordParamMapping.get(code)
         stn=self.stations.get(code)
-        if stn is None or mapping is None:
+        if stn is None or mapping is None or len(mapping[0]) == 0:
             return np.zeros((3,3))
         obseq=np.zeros((self.nparam,3))
         obseq[mapping[0]]=mapping[1]
@@ -1207,6 +1241,40 @@ class Adjustment( object ):
 
     def sumNormalEquations( self ):
         for oe in self.observationEquations():
+            self.sumObservation(oe)
+        if len(self.options.floatStations) > 0:
+            self.sumFloatStations()
+
+    def sumFloatStations(self):
+        # Sum float stations if requested...
+        # Create a GX observation from the station coordinates. 
+        # Note that if there is no original coordinate then the 
+        # float coordinate changes at each iteration, so the
+        # solution will not converge quickly!
+        func=self.useStationFunc(self.options.floatStations,None)
+        for code in self.coordParamMapping:
+            params=self.coordParamMapping[code][0]
+            if len(params) == 0:
+                continue
+            float=func(code)
+            if float is None:
+                continue
+            if self.options.debugObservationEquations:
+                self.writeDebugOutput(
+                    "  Floating {0}: {1:.4f} {2:.4f}\n".format(code,float[0],float[1]))
+            enuerr=np.diag((float[0],float[0],float[1]))
+            enuerr=enuerr*enuerr
+            stn=self.stations.get(code)
+            code=stn.code()
+            xyz=self.originalXyz.get(code)
+            if xyz is None:
+                xyz=stn.xyz()
+            xyz=np.array(xyz)
+            enu=stn.enu()
+            cvr=enu.T.dot(enuerr.dot(enu))
+            obs=Observation('GX',covariance=cvr)
+            obs.addObservation(ObservationValue(code,value=xyz))
+            oe=self.observationEquation(obs)
             self.sumObservation(oe)
 
     def solveEquations( self ):
@@ -1355,9 +1423,67 @@ class Adjustment( object ):
                     data.extend([obsv.attributes.get(a) for a in attributes])
                     csvw.writerow(data)
         
+    def _getExtraStationDataFunc( self ):
+        writeCovar=self.options.outputStationCovariances
+        writeEllipse=self.options.outputStationErrorEllipses
+        writeOffsets=self.options.outputStationOffsets
+        if not writeCovar and not writeEllipse and not writeOffsets:
+            return None
+        columns=[]
+        if writeCovar:
+            columns.extend(('stderr_e','stderr_n','stderr_u','corr_en','corr_eu','corr_nu'))
+        if writeEllipse:
+            columns.extend(('maxerr_h','minerr_h','azmaxerr'))
+            if not writeCovar:
+                columns.extend(('stderr_u',))
+        if writeOffsets:
+            columns.extend(('offset_e','offset_n','offset_u'))
+
+        def func(code):
+            if code is None: 
+                return columns
+            data={}
+            if writeCovar or writeEllipse:
+                cvrenu=self.stationENUCovariance( code )
+                stderr=np.sqrt(cvrenu.diagonal())
+                div=stderr*stderr.reshape((3,1))
+                data['stderr_e']=stderr[0]
+                data['stderr_n']=stderr[1]
+                data['stderr_u']=stderr[2]
+                data['corr_en']=cvrenu[0,1]/div[0,1] if div[0,1] > 0.0 else 0.0
+                data['corr_eu']=cvrenu[0,2]/div[0,2] if div[0,2] > 0.0 else 0.0
+                data['corr_nu']=cvrenu[1,2]/div[1,2] if div[1,2] > 0.0 else 0.0
+                if writeEllipse:
+                    v1=(cvrenu[1,1]+cvrenu[0,0])/2.0
+                    v2=(cvrenu[1,1]-cvrenu[0,0])/2.0
+                    v3=cvrenu[0,1]
+                    v4=math.sqrt(v2*v2+v3*v3)
+                    azmax=math.degrees(math.atan2(v3,v2)/2.0) if v4 > 0.0 else 0.0
+                    if azmax < 0.0:
+                        azmax += 180.0
+                    emax=math.sqrt(max(0.0,v1+v4))
+                    emin=math.sqrt(max(0.0,v1-v4))
+                    data['maxerr_h']=emax
+                    data['minerr_h']=emin
+                    data['azmaxerr']=azmax
+            if writeOffsets:
+                if code in self.originalXyz:
+                    stn=self.stations.get(code)
+                    offset=stn.xyz()-self.originalXyz[code]
+                    offset=stn.enu().dot(offset)
+                    data['offset_e']=offset[0]
+                    data['offset_n']=offset[1]
+                    data['offset_u']=offset[2]
+            for c in data:
+                data[c]="{0:.4f}".format(data[c])
+
+            return [data.get(c) for c in columns]
+
+        return func
+
     def _getCoordinateCovariance( self, code ):
         if code is None:
-            return ('stderr_e','stderr_n','stderr_u','corr_en','corr_eu','corr_nu')
+            return 
         cvrenu=self.stationENUCovariance( code )
         stderr=np.sqrt(cvrenu.diagonal())
         div=stderr*stderr.reshape((3,1))
@@ -1372,12 +1498,9 @@ class Adjustment( object ):
             self.writeResidualCsv(self.options.outputResidualFile,self.options.outputResidualFileOptions)
 
         if self.options.outputStationFile is not None:
-            extradata=None
-            if self.options.outputStationCovariances:
-                extradata=self._getCoordinateCovariance
             self.stations.writeCsv(self.options.outputStationFile,
                                    geodetic=self.options.outputStationFileGeodetic,
-                                   extradata=extradata)
+                                   extradata=self._getExtraStationDataFunc())
 
 
     def setup( self ):

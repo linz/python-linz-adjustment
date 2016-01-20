@@ -38,7 +38,11 @@ residual_csv_file wark2015lt-residuals.csv
 # Station coordinates.  Filename can be preceded by options of
 #    geodetic     output coords as lat/lon/ell hgt
 #    xyz          output coords geocentric XYZ
-#    covariances  include a priori coordinate covariance information
+#    covariances  include a priori coordinate ENU covariance information
+#    ellipses     include a priori coordinate error ellipses
+#    offsets      include station ENU offsets
+#    to           the rest of the command is the filename,
+#                 including spaces
 #
 #  eg output_coordinate_file geodetic covariances newcoords.csv
 

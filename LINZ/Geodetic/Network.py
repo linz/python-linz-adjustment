@@ -118,8 +118,8 @@ class Network:
         geodetic=self._geodeticCsv if geodetic is None else geodetic
 
         cols=Network._defaultColumnsLLH if geodetic else Network._defaultColumnsXYZ
-        if colnames:
-            cols=list((colnames.get(c,c) for c in cols))
+        colnames=colnames or {}
+        cols=[colnames.get(c,c) for c in cols]
         cols.extend(extradata(None))
 
         with open(csvfile,'wb') as csvfh:
