@@ -343,6 +343,54 @@ ST1,ST1,-4461978.8227,706708.0186,-4487355.4798,0.0,0.0,0.0,0.0498,0.0498,2.8553
 
 >>>>
 ======================================================================
+>>>> test_61__output 
+Observation summary:
+  1 XYZ coordinate observations
+  Using refraction coefficient 0.075
+
+Calculating 3 parameters
+
+Parameters:
+    ST1 X
+    ST1 Y
+    ST1 Z
+
+Observation Equations:
+
+Observation: GX from ST1 to None
+  ObsRes: [[ 16.2307682401]
+ [  7.5539501141]
+ [ 13.4350288427]]
+  ObsEq:  [[ 1.  0.  0.]
+ [ 0.  1.  0.]
+ [ 0.  0.  1.]]
+  ObsCvr: [[ 0.0025  0.      0.    ]
+ [ 0.      0.0025  0.    ]
+ [ 0.      0.      0.0025]]
+  Floating ST1: 0.0500 0.1000
+Iteration 1: max coord change 16.7705m at ST1
+  Floating ST1: 0.0500 0.1000
+Iteration 2: max coord change 0.0000m at ST1
+
+Sum of squared residuals:     52199.962057
+Number of parameters:         3
+Number of observations:       6
+Degrees of freedom:           3
+Standard error of unit weight 131.9090
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  GX            3 131.9090
+
+>>>> test_61__obs [GX,ST1,None,0.0000,0.0000,[-4461978.82267,706708.01857,-4487355.47982],None
+]
+>>>> test_61__station_st1_coordinates array([ 171.0000634139,  -44.9999955008,   13.9999996042])
+>>>> test_61__output_file_coords code,name,X,Y,Z,xi,eta,geoidhgt,offset_e,offset_n,offset_u
+ST1,ST1,-4461982.7476,706703.5779,-4487357.9547,0.0,0.0,0.0,-5.0000,-0.5000,-16.0000
+
+>>>>
+======================================================================
 >>>> test_100__output 
 Observation summary:
   1 Azimuth observations
