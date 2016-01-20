@@ -80,7 +80,21 @@ class Network:
             stn=Station(code,name=name,xyz=xyz,llh=llh,xieta=xieta,geoidhgt=geoidhgt)
             self.addStation(stn)
 
-    def writeCsv( self, csvfile, geodetic=None, colnames=None ):
+    def _datafunc( self, extradata ):
+        extradata = extradata or {}
+        coldata={}
+        for v in extradata.values():
+            coldata.update(v)
+        columns=sorted(coldata.keys())
+        if not columns:
+            return lambda x: []
+        def func(code):
+            if code is none:
+                return columns
+            data=extradata.get(code,{})
+            return [data.get(c) for c in columns]
+
+    def writeCsv( self, csvfile, geodetic=None, colnames=None, extradata=None ):
         '''
         Write stations to a csv file.  Column names default to 
         Network._defaultColumnsXYZ, or Network._defaultColumnsLLH for 
@@ -90,13 +104,23 @@ class Network:
 
         colnames is an optional dictionary mapping from column ids to actual
         column names.
+
+        extradata can be: 
+            a dictionary of dictionaries, keyed on station code with values
+            a key/pair dictionary
+            a function that returns a list of column names if called with None
+            as a parameter, or a list of values if called with code as a parameter.
         '''
+        
+        if not callable(extradata):
+            extradata=self._datafunc(extradata)
 
         geodetic=self._geodeticCsv if geodetic is None else geodetic
 
         cols=Network._defaultColumnsLLH if geodetic else Network._defaultColumnsXYZ
         if colnames:
             cols=list((colnames.get(c,c) for c in cols))
+        cols.extend(extradata(None))
 
         with open(csvfile,'wb') as csvfh:
             csvw=csv.writer(csvfh)
@@ -111,6 +135,7 @@ class Network:
                 row.append(xieta[0]*3600)
                 row.append(xieta[1]*3600)
                 row.append(stn.geoidHeight())
+                row.extend(extradata(stn.code()))
                 csvw.writerow(row)
 
     def get( self, code ):

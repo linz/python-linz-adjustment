@@ -8,8 +8,8 @@ Observation summary:
   Using refraction coefficient 0.000
 
 Calculating 3 parameters
-Iteration 0: max coord change 1.1576m at ST2
-Iteration 1: max coord change 0.0000m at ST2
+Iteration 1: max coord change 1.1576m at ST2
+Iteration 2: max coord change 0.0000m at ST2
 
 Sum of squared residuals:     0.000001
 Number of parameters:         3
@@ -40,8 +40,8 @@ Observation summary:
   Using refraction coefficient 0.075
 
 Calculating 3 parameters
-Iteration 0: max coord change 1.1576m at ST1
-Iteration 1: max coord change 0.0000m at None
+Iteration 1: max coord change 1.1576m at ST1
+Iteration 2: max coord change 0.0000m at None
 
 Sum of squared residuals:     0.000000
 Number of parameters:         3
@@ -65,8 +65,8 @@ Observation summary:
   Using refraction coefficient 0.000
 
 Calculating 3 parameters
-Iteration 0: max coord change 1.1576m at ST2
-Iteration 1: max coord change 0.0000m at None
+Iteration 1: max coord change 1.1576m at ST2
+Iteration 2: max coord change 0.0000m at None
 
 Sum of squared residuals:     0.000000
 Number of parameters:         3
@@ -93,9 +93,9 @@ Observation summary:
   Using refraction coefficient 0.000
 
 Calculating 3 parameters
-Iteration 0: max coord change 1.1573m at ST2
-Iteration 1: max coord change 0.0015m at ST2
-Iteration 2: max coord change 0.0000m at ST2
+Iteration 1: max coord change 1.1573m at ST2
+Iteration 2: max coord change 0.0015m at ST2
+Iteration 3: max coord change 0.0000m at ST2
 
 Sum of squared residuals:     0.000000
 Number of parameters:         3
@@ -129,8 +129,8 @@ Observation summary:
   Using refraction coefficient 0.000
 
 Calculating 3 parameters
-Iteration 0: max coord change 1.1576m at ST2
-Iteration 1: max coord change 0.0000m at ST2
+Iteration 1: max coord change 1.1576m at ST2
+Iteration 2: max coord change 0.0000m at ST2
 
 Sum of squared residuals:     0.000000
 Number of parameters:         3
@@ -153,6 +153,76 @@ Summary of residuals
 ]
 >>>> test_5__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
 >>>> test_5__station_st2_coordinates array([ 171.35        ,  -44.82        ,   19.9999413984])
+>>>>
+======================================================================
+>>>> test_50__output 
+Observation summary:
+  1 Azimuth observations
+  1 Height difference observations
+  1 Slope distance observations
+  Using refraction coefficient 0.000
+
+Calculating 3 parameters
+Iteration 1: max coord change 0.0000m at None
+
+Sum of squared residuals:     0.000000
+Number of parameters:         3
+Number of observations:       3
+Degrees of freedom:           0
+Standard error of unit weight 1.0000
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  AZ            0   1.0000
+  LV            0   1.0000
+  SD            0   1.0000
+
+>>>> test_50__obs [AZ,ST1,ST2,0.0000,0.0000,8.0769,0.0015
+, SD,ST1,ST2,0.0000,0.0000,561.3158,0.0050
+, LV,ST1,ST2,0.0000,0.0000,10.0000,0.0250
+]
+>>>> test_50__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_50__station_st2_coordinates array([ 171.001       ,  -44.995       ,   20.0000000019])
+>>>> test_50__output_file_coords code,name,X,Y,Z,xi,eta,geoidhgt
+ST1,ST1,-4461978.8227,706708.0186,-4487355.4798,0.0,0.0,0.0
+ST2,ST2,-4462386.1984,706692.7037,-4486969.6225,0.0,0.0,0.0
+
+>>>>
+======================================================================
+>>>> test_51__output 
+Observation summary:
+  1 Azimuth observations
+  1 Height difference observations
+  1 Slope distance observations
+  Using refraction coefficient 0.000
+
+Calculating 3 parameters
+Iteration 1: max coord change 0.0000m at None
+
+Sum of squared residuals:     0.000000
+Number of parameters:         3
+Number of observations:       3
+Degrees of freedom:           0
+Standard error of unit weight 1.0000
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  AZ            0   1.0000
+  LV            0   1.0000
+  SD            0   1.0000
+
+>>>> test_51__obs [AZ,ST1,ST2,0.0000,0.0000,8.0769,0.0015
+, SD,ST1,ST2,0.0000,0.0000,561.3158,0.0050
+, LV,ST1,ST2,0.0000,0.0000,10.0000,0.0250
+]
+>>>> test_51__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_51__station_st2_coordinates array([ 171.001       ,  -44.995       ,   20.0000000019])
+>>>> test_51__output_file_coords code,name,X,Y,Z,xi,eta,geoidhgt,stderr_e,stderr_n,stderr_u,corr_en,corr_eu,corr_nu
+ST1,ST1,-4461978.8227,706708.0186,-4487355.4798,0.0,0.0,0.0,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000
+ST2,ST2,-4462386.1984,706692.7037,-4486969.6225,0.0,0.0,0.0,0.0146,0.0054,0.0250,-0.3383,-0.0043,-0.0821
+
 >>>>
 ======================================================================
 >>>> test_100__output 
@@ -179,8 +249,8 @@ Fixing station ST2
 Approximate coordinates calculated for 1 stations
 
 Calculating 3 parameters
-Iteration 0: max coord change 0.4205m at ST2
-Iteration 1: max coord change 0.0000m at ST2
+Iteration 1: max coord change 0.4205m at ST2
+Iteration 2: max coord change 0.0000m at ST2
 
 Sum of squared residuals:     0.000000
 Number of parameters:         3
@@ -227,8 +297,8 @@ Fixing station ST2
 Approximate coordinates calculated for 1 stations
 
 Calculating 3 parameters
-Iteration 0: max coord change 0.4205m at ST2
-Iteration 1: max coord change 0.0000m at ST2
+Iteration 1: max coord change 0.4205m at ST2
+Iteration 2: max coord change 0.0000m at ST2
 
 Sum of squared residuals:     0.000000
 Number of parameters:         3
@@ -259,7 +329,7 @@ Observation summary:
   Using refraction coefficient 0.000
 
 Calculating 0 parameters
-Iteration 0: max coord change 0.0000m at None
+Iteration 1: max coord change 0.0000m at None
 
 Sum of squared residuals:     568.102412
 Number of parameters:         0
@@ -374,9 +444,9 @@ Observation: SD from ST1 to ST2
   ObsRes: [[-0.0000023285]]
   ObsEq:  [[ 0.            0.           -0.1132157954 -0.9898425481 -0.0859878686]]
   ObsCvr: [[ 0.00000625]]
-Iteration 0: max coord change 0.3835m at ST2
-Iteration 1: max coord change 0.0004m at ST2
-Iteration 2: max coord change 0.0000m at ST2
+Iteration 1: max coord change 0.3835m at ST2
+Iteration 2: max coord change 0.0004m at ST2
+Iteration 3: max coord change 0.0000m at ST2
 
 Sum of squared residuals:     0.000000
 Number of parameters:         5
@@ -414,4 +484,316 @@ C           -0.0500   0.0025
 ]
 >>>> test_250__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
 >>>> test_250__station_st2_coordinates array([ 171.0024648196,  -45.0001602463,   15.550999999 ])
+>>>>
+======================================================================
+>>>> test_251__output 
+Observation files:
+  /data/testadj1.csv
+
+Observation summary:
+  3 Azimuth observations
+  9 Height difference observations
+  3 Slope distance observations
+  Using refraction coefficient 0.075
+
+Calculating 4 parameters
+
+Parameters:
+    Setup C height offset
+    ST2 X
+    ST2 Y
+    ST2 Z
+
+Observation Equations:
+
+Observation: AZ from ST1 to ST2
+  ObsRes: [[-0.0000000047]]
+  ObsEq:  [[ 0.            0.003637083  -0.0001025429 -0.0036083457]]
+  ObsCvr: [[ 0.0000000007]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.3833333336]]
+  ObsEq:  [[ 0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[ 0.3166666664]]
+  ObsEq:  [[ 0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.4333333337]]
+  ObsEq:  [[ 1.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: SD from ST1 to ST2
+  ObsRes: [[-0.0000023285]]
+  ObsEq:  [[ 0.           -0.1132157954 -0.9898425481 -0.0859878686]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: AZ from ST1 to ST2
+  ObsRes: [[-0.0000000047]]
+  ObsEq:  [[ 0.            0.003637083  -0.0001025429 -0.0036083457]]
+  ObsCvr: [[ 0.0000000007]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.3833333336]]
+  ObsEq:  [[ 0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[ 0.3166666664]]
+  ObsEq:  [[ 0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.4333333337]]
+  ObsEq:  [[ 1.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: SD from ST1 to ST2
+  ObsRes: [[-0.0000023285]]
+  ObsEq:  [[ 0.           -0.1132157954 -0.9898425481 -0.0859878686]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: AZ from ST1 to ST2
+  ObsRes: [[-0.0000000047]]
+  ObsEq:  [[ 0.            0.003637083  -0.0001025429 -0.0036083457]]
+  ObsCvr: [[ 0.0000000007]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.3833333336]]
+  ObsEq:  [[ 0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[ 0.3166666664]]
+  ObsEq:  [[ 0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.4333333337]]
+  ObsEq:  [[ 1.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: SD from ST1 to ST2
+  ObsRes: [[-0.0000023285]]
+  ObsEq:  [[ 0.           -0.1132157954 -0.9898425481 -0.0859878686]]
+  ObsCvr: [[ 0.00000625]]
+Iteration 1: max coord change 0.0333m at ST2
+Iteration 2: max coord change 0.0000m at ST2
+
+Sum of squared residuals:     117600.000004
+Number of parameters:         4
+Number of observations:       15
+Degrees of freedom:           11
+Standard error of unit weight 103.3969
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  AZ            3   0.0000
+  LV            9 125.2198
+  SD            3   0.0000
+
+Calculated setup heights:
+
+Setup        Height    Error
+
+A            0.2500    -    
+
+B            0.2500    -    
+
+C           -0.4000   0.0018
+
+>>>> test_251__obs [AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=/data/testadj1.csv:1
+, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=/data/testadj1.csv:2
+, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=/data/testadj1.csv:3
+, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=/data/testadj1.csv:4
+, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=/data/testadj1.csv:5
+, AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=/data/testadj1.csv:1
+, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=/data/testadj1.csv:2
+, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=/data/testadj1.csv:3
+, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=/data/testadj1.csv:4
+, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=/data/testadj1.csv:5
+, AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=/data/testadj1.csv:1
+, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=/data/testadj1.csv:2
+, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=/data/testadj1.csv:3
+, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=/data/testadj1.csv:4
+, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=/data/testadj1.csv:5
+]
+>>>> test_251__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_251__station_st2_coordinates array([ 171.0024646898,  -45.0001602378,   15.9009999987])
+>>>>
+======================================================================
+>>>> test_252__output 
+Observation files:
+  /data/testadj1.csv
+
+Observation summary:
+  4 Azimuth observations
+  12 Height difference observations
+  4 Slope distance observations
+  Using refraction coefficient 0.075
+
+Calculating 5 parameters
+
+Parameters:
+    Setup B height offset
+    Setup C height offset
+    ST2 X
+    ST2 Y
+    ST2 Z
+
+Observation Equations:
+
+Observation: AZ from ST1 to ST2
+  ObsRes: [[-0.0000000047]]
+  ObsEq:  [[ 0.            0.            0.003637083  -0.0001025429 -0.0036083457]]
+  ObsCvr: [[ 0.0000000007]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.3833333336]]
+  ObsEq:  [[ 0.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.1833333334]]
+  ObsEq:  [[ 1.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.4333333337]]
+  ObsEq:  [[ 0.            1.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: SD from ST1 to ST2
+  ObsRes: [[-0.0000023285]]
+  ObsEq:  [[ 0.            0.           -0.1132157954 -0.9898425481 -0.0859878686]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: AZ from ST1 to ST2
+  ObsRes: [[-0.0000000047]]
+  ObsEq:  [[ 0.            0.            0.003637083  -0.0001025429 -0.0036083457]]
+  ObsCvr: [[ 0.0000000007]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.3833333336]]
+  ObsEq:  [[ 0.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.1833333334]]
+  ObsEq:  [[ 1.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.4333333337]]
+  ObsEq:  [[ 0.            1.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: SD from ST1 to ST2
+  ObsRes: [[-0.0000023285]]
+  ObsEq:  [[ 0.            0.           -0.1132157954 -0.9898425481 -0.0859878686]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: AZ from ST1 to ST2
+  ObsRes: [[-0.0000000047]]
+  ObsEq:  [[ 0.            0.            0.003637083  -0.0001025429 -0.0036083457]]
+  ObsCvr: [[ 0.0000000007]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.3833333336]]
+  ObsEq:  [[ 0.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.1833333334]]
+  ObsEq:  [[ 1.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.4333333337]]
+  ObsEq:  [[ 0.            1.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: SD from ST1 to ST2
+  ObsRes: [[-0.0000023285]]
+  ObsEq:  [[ 0.            0.           -0.1132157954 -0.9898425481 -0.0859878686]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: AZ from ST1 to ST2
+  ObsRes: [[-0.0000000047]]
+  ObsEq:  [[ 0.            0.            0.003637083  -0.0001025429 -0.0036083457]]
+  ObsCvr: [[ 0.0000000007]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.3833333336]]
+  ObsEq:  [[ 0.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.1833333334]]
+  ObsEq:  [[ 1.            0.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: LV from ST1 to ST2
+  ObsRes: [[-0.4333333337]]
+  ObsEq:  [[ 0.            1.           -0.6984039278  0.1105855187 -0.7071087587]]
+  ObsCvr: [[ 0.00000625]]
+
+Observation: SD from ST1 to ST2
+  ObsRes: [[-0.0000023285]]
+  ObsEq:  [[ 0.            0.           -0.1132157954 -0.9898425481 -0.0859878686]]
+  ObsCvr: [[ 0.00000625]]
+Iteration 1: max coord change 0.3502m at ST2
+Iteration 2: max coord change 0.0003m at ST2
+Iteration 3: max coord change 0.0000m at ST2
+
+Sum of squared residuals:     4266.666679
+Number of parameters:         5
+Number of observations:       21
+Degrees of freedom:           16
+Standard error of unit weight 16.3299
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  AZ            4   0.0000
+  LV           12  12.2355
+  SD            4   0.0000
+
+Calculated setup heights:
+
+Setup        Height    Error
+
+A            0.2500    -    
+
+B            0.8833   0.0014 (floated 0.0025)
+
+C           -0.0833   0.0017
+
+>>>> test_252__obs [AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=/data/testadj1.csv:1
+, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=/data/testadj1.csv:2
+, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=/data/testadj1.csv:3
+, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=/data/testadj1.csv:4
+, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=/data/testadj1.csv:5
+, AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=/data/testadj1.csv:1
+, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=/data/testadj1.csv:2
+, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=/data/testadj1.csv:3
+, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=/data/testadj1.csv:4
+, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=/data/testadj1.csv:5
+, AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=/data/testadj1.csv:1
+, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=/data/testadj1.csv:2
+, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=/data/testadj1.csv:3
+, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=/data/testadj1.csv:4
+, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=/data/testadj1.csv:5
+, AZ,ST1,ST2,0.0000,0.0000,95.2365,0.0015,eqpt=T2 setup=A source=/data/testadj1.csv:1
+, LV,ST1,ST2,0.0000,0.0000,5.8010,0.0025,eqpt=GX3 setup=A source=/data/testadj1.csv:2
+, LV,ST1,ST2,0.0000,0.0000,6.5010,0.0025,eqpt=GX3 setup=B source=/data/testadj1.csv:3
+, LV,ST1,ST2,0.0000,0.0000,5.5010,0.0025,eqpt=GX1 setup=C source=/data/testadj1.csv:4
+, SD,ST1,ST2,0.0000,0.0000,195.2365,0.0025,eqpt=DI20 setup=1 source=/data/testadj1.csv:5
+]
+>>>> test_252__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_252__station_st2_coordinates array([ 171.0024648076,  -45.0001602455,   15.5843333323])
 >>>>

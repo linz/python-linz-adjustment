@@ -6,6 +6,7 @@
 listing_file WARK2015LT.lst
 
 # Coordinate input file (not required if can calculate all stations)
+
 #coordinate_file network-stn.csv
 
 # Data files.  Can be SNX, msr (dynanet format), csv. By default CSV. 
@@ -29,9 +30,19 @@ data_file 50243_WARK_2015-072.msr
 data_file APS150750.SNX
 
 # Optional output files
+# 
+# Observation residuals
 
 residual_csv_file wark2015lt-residuals.csv
-#output_coordinate_file 
+
+# Station coordinates.  Filename can be preceded by options of
+#    geodetic     output coords as lat/lon/ell hgt
+#    xyz          output coords geocentric XYZ
+#    covariances  include a priori coordinate covariance information
+#
+#  eg output_coordinate_file geodetic covariances newcoords.csv
+
+output_coordinate_file coords.csv
 
 # ========================================================
 # Station constraint options
@@ -82,6 +93,7 @@ refraction_coefficient 0.075
 
 convergence_tolerance 0.0001
 max_iterations 10
+min_iterations 0
 
 # Adjust in terms of ENU components rather than XYZ components - 
 #

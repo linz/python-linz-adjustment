@@ -73,14 +73,21 @@ class Options( object  ):
             else:
                 raise KeyError(k)
 
-class ObsEq( object ):
+class ObsEqn( object ):
 
-    def __init__( self, obsres, obseq, obscovar, schreiber=None ):
-        self.obsres=obsres
-        self.obseq=obseq
-        self.obscovar=obscovar
+    def __init__( self, nrow, nparam, diagonalCovar=True, haveSchreiber=False ):
+        self.obseq=np.zeros((nrow,nparam))
+        self.obsres=np.zeros((nrow,1))
+        self.obscovar=np.zeros((nrow,1)) if diagonalCovar else np.zeros((nrow,nrow))
+        self.diagonal=diagonalCovar
+        self.schreiber=np.ones((nrow,1)) if haveSchreiber else None
+
+    def setCovar( self, obscovar ):
+        self.obscovar=np.array(obscovar)
         self.diagonal=obscovar.shape[1] == 1
-        self.schreiber=schreiber
+
+    def setSchreiber( self, schreiber ):
+        self.schreiber=None if schreiber is None else np.array(schreiber)
 
 class Plugin( object ):
 
@@ -135,13 +142,14 @@ class Adjustment( object ):
         postSetup
         preSetupParameters!
         postSetupParameters
+        sumNormalEquations
         updateObservationEquation
 
     The order in which plugins are loaded is defines the order in which the plugin hooks will be run.
     The Adjustment class itself is the first plugin loaded.  Those functions marked with ! are run in
     reverse order of loading.
     
-    The parameters in the plugin function will be the same 
+    The parameters in the plugin function will be the same as
     for the corresponding Adjustment function.  
 
         class MyPlugin( Adjustment.Plugin ):
@@ -358,6 +366,7 @@ class Adjustment( object ):
             dataFiles=[],
             outputStationFile=None,
             outputStationFileGeodetic=None,
+            outputStationCovariances=False,
             outputResidualFile=None,
             outputResidualFileOptions={},
 
@@ -368,6 +377,7 @@ class Adjustment( object ):
             ignoreMissingStations=False,
 
             # Adjustment options
+            minIterations=0,
             maxIterations=10,
             convergenceTolerance=0.0001,
             adjustENU=False,
@@ -434,12 +444,18 @@ class Adjustment( object ):
             self.options.dataFiles.append(
                 {'filename':filename,'attributes':attributes})
         elif item == 'output_coordinate_file':
-            if value.startswith('geodetic '):
-                self.options.outputStationFileGeodetic=True
-                value=value[9:].strip()
-            elif value.startswith('xyz '):
-                self.options.outputStationFileGeodetic=True
-                value=value[4:].strip()
+            while True:
+                m=re.match(r'(geodetic|xyz|covariances)\s+(\S.*)$',value,re.I)
+                if not m:
+                    break
+                option=m.group(1).lower()
+                value=m.group(2)
+                if option == 'geodetic':
+                    self.options.outputStationFileGeodetic=True
+                elif option == 'xyz':
+                    self.options.outputStationFileGeodetic=True
+                elif option == 'covariances':
+                    self.options.outputStationCovariances=True
             self.options.outputStationFile=value
         elif item == 'residual_csv_file':
             parts=self.splitConfigValue(value)
@@ -479,6 +495,8 @@ class Adjustment( object ):
             self.options.convergenceTolerance=float(value)
         elif item == 'max_iterations':
             self.options.maxIterations=int(value)
+        elif item == 'min_iterations':
+            self.options.minIterations=int(value)
         elif item == 'adjust_enu':
             self.options.adjustENU=Options.boolOption(value)
         elif item == 'refraction_coefficient':
@@ -762,7 +780,7 @@ class Adjustment( object ):
         '''
         Defines a mapping from station coordinates to parameters.
 
-        Sets up a dictionary from station id to a tuple of three values
+        Sets up a dictionary coordParamMapping from station id to a tuple of three values
             paramno: parameter number array - parameters used to define stations
             dxyzdp: (n,3) array defining differential of x,y,z against param
             updatexyz: if true then the station coordinate is updated based on
@@ -981,13 +999,15 @@ class Adjustment( object ):
         obstype=obs.obstype
         nval=obstype.nvalue
         nrow=len(obs.obsvalues)*nval
-        obseq=np.zeros((nrow,self.nparam))
-        obsres=np.zeros((nrow,1))
-        obscovar=obs.covariance
-        diagonal=obscovar is None
-        schreiber=None
-        if diagonal:
-            obscovar=np.zeros((nrow,1))
+        obseqn=ObsEqn(nrow,self.nparam)
+        diagonal=True
+        if obs.covariance is not None:
+            obseqn.setCovar(obs.covariance)
+            diagonal=False
+        obsres=obseqn.obsres
+        obseq=obseqn.obseq
+        obscovar=obseqn.obscovar
+
         offsets=self.compileStationOffsets( obs )
         offsettype,offi,offt,doffi,dofft=Station.OFFSET_XYZ,None,None,None,None
 
@@ -1039,21 +1059,21 @@ class Adjustment( object ):
         if obstype.code == 'HA':
             assert diagonal
             # Round to multiple of 180.
-            obsres = np.remainder(obsres-obsres[0]+180.0,360.0)-180.0
+            obsres[:] = np.remainder(obsres-obsres[0]+180.0,360.0)-180.0
             # Remove weighted mean residual
             wgt=1.0/obscovar
             wgtsum=wgt.sum()
             obsres -= (wgt.T.dot(obsres))/wgtsum
             schreiber=np.ones((nrow,1))
+            obseqn.setSchreiber(schreiber)
 
         # Handle 360 degree wrapping for azimuths
 
         elif obstype.code == 'AZ':
-            obsres = np.remainder(obsres+180.0,360.0)-180.0
+            obsres[:] = np.remainder(obsres+180.0,360.0)-180.0
 
-        obseq=ObsEq(obsres,obseq,obscovar,schreiber)
-        self.runPluginFunction('updateObservationEquation',obs,obseq)
-        return obseq
+        self.runPluginFunction('updateObservationEquation',obs,obseqn)
+        return obseqn
 
     # Note: May be scope for simplification/optimisation here using more
     # sophisticated routines such as numpy.linalg.lstsqu.  Also look at
@@ -1095,6 +1115,23 @@ class Adjustment( object ):
             self.N=linalg.inv(self.N)
             self.solved=2
         return self.N
+
+    def stationENUCovariance( self, code ):
+        '''
+        Return the ENU coordinate covariance matrix
+        '''
+        assert self.solved > 0,"calcResiduals requires the equations to be solved"
+        N=self.covariance()
+        mapping=self.coordParamMapping.get(code)
+        stn=self.stations.get(code)
+        if stn is None or mapping is None:
+            return np.zeros((3,3))
+        obseq=np.zeros((self.nparam,3))
+        obseq[mapping[0]]=mapping[1]
+        cvr=obseq.T.dot(N.dot(obseq))
+        enu=stn.enu()
+        cvrenu=enu.dot((enu.dot(cvr)).T)
+        return cvrenu
 
     def calcResidual( self, obs ):
         '''
@@ -1168,6 +1205,10 @@ class Adjustment( object ):
         for obs in self.observations:
             yield self.observationEquation(obs)
 
+    def sumNormalEquations( self ):
+        for oe in self.observationEquations():
+            self.sumObservation(oe)
+
     def solveEquations( self ):
         try:
             self.x=linalg.solve(self.N, self.b).flatten()
@@ -1178,8 +1219,7 @@ class Adjustment( object ):
 
     def runOneIteration( self ):
         self.setupNormalEquations()
-        for oe in self.observationEquations():
-            self.sumObservation(oe)
+        self.runPluginFunction('sumNormalEquations')
         self.solveEquations()
         self.dof=self.nobs-self.nparam
         self.seu=math.sqrt(self.ssr/self.dof) if self.dof > 0 else 1.0
@@ -1315,13 +1355,30 @@ class Adjustment( object ):
                     data.extend([obsv.attributes.get(a) for a in attributes])
                     csvw.writerow(data)
         
+    def _getCoordinateCovariance( self, code ):
+        if code is None:
+            return ('stderr_e','stderr_n','stderr_u','corr_en','corr_eu','corr_nu')
+        cvrenu=self.stationENUCovariance( code )
+        stderr=np.sqrt(cvrenu.diagonal())
+        div=stderr*stderr.reshape((3,1))
+        return ["{0:.4f}".format(x) for x in 
+                (stderr[0],stderr[1],stderr[2],
+                cvrenu[0,1]/div[0,1] if div[0,1] > 0.0 else 0.0,
+                cvrenu[0,2]/div[0,2] if div[0,2] > 0.0 else 0.0,
+                cvrenu[1,2]/div[1,2] if div[1,2] > 0.0 else 0.0)]
+
     def writeOutputFiles( self ):
         if self.options.outputResidualFile is not None:
             self.writeResidualCsv(self.options.outputResidualFile,self.options.outputResidualFileOptions)
 
         if self.options.outputStationFile is not None:
+            extradata=None
+            if self.options.outputStationCovariances:
+                extradata=self._getCoordinateCovariance
             self.stations.writeCsv(self.options.outputStationFile,
-                                   geodetic=self.options.outputStationFileGeodetic)
+                                   geodetic=self.options.outputStationFileGeodetic,
+                                   extradata=extradata)
+
 
     def setup( self ):
         pass
@@ -1351,8 +1408,8 @@ class Adjustment( object ):
         converged=True
         for i in range(options.maxIterations):
             converged,coordUpdate,code=self.runOneIteration()
-            self.write("Iteration {0}: max coord change {1:.4f}m at {2}\n".format(i,coordUpdate,code))
-            if converged:
+            self.write("Iteration {0}: max coord change {1:.4f}m at {2}\n".format(i+1,coordUpdate,code))
+            if converged and i >= options.minIterations-1 :
                 break
 
         if not converged:

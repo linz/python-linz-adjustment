@@ -24,7 +24,7 @@ class AdjustmentTestCase( fileunittest.TestCase ):
     def offsetStation( self, st, dxyz ):
         st.setXYZ( st.xyz() + dxyz )
 
-    def runAdjustment( self, test, adj, checkListing=True, checkGeoid=False ):
+    def runAdjustment( self, test, adj, checkListing=True, checkGeoid=False, outputfiles={} ):
         global basedir
         basepath=basedir
         outputfile=StringIO.StringIO()
@@ -49,7 +49,27 @@ class AdjustmentTestCase( fileunittest.TestCase ):
                 grav=list(s.xieta())
                 grav.append(s.geoidHeight())
                 self.check(test+': Station {0} geoid'.format(s.code()),grav)
+        # Output files
+        for f in sorted(outputfiles):
+            filename=outputfiles[f]
+            try:
+                with open(filename) as opf:
+                    filedata=opf.read()
+            except:
+                filedata='missing'
+            try:
+                if os.path.exists(filename):
+                    os.remove(filename)
+            except:
+                pass
+            self.check(test+': Output file '+f,filedata)
 
+    def outputFilePath( self, filename ):
+        global basedir
+        outdir=os.path.join(basedir,'outputfiles')
+        if not os.path.isdir(outdir):
+            os.makedirs(outdir)
+        return os.path.join(outdir,filename)
 
     def test_001_basic_offset( self ):
         '''
@@ -143,6 +163,46 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         adj.setConfig('refraction_coefficient','0.0')
         self.runAdjustment('Test 5',adj)
 
+    def test_050_output_coords( self ):
+        '''
+        With station heights
+        '''
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=(171.001,-44.995,20.0))
+        obs=[]
+        obs.append(AZ(st1,st2,0.0015))
+        obs.append(SD(st1,st2,0.005))
+        obs.append(LV(st1,st2,0.025))
+        net=Network.Network()
+        net.addStation(st1)
+        net.addStation(st2)
+        adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
+        adj.setConfig('fix','ST1')
+        adj.setConfig('refraction_coefficient','0.0')
+        cfname=self.outputFilePath('test50_coords.csv')
+        adj.setConfig('output_coordinate_file',cfname)
+        self.runAdjustment('Test 50',adj,outputfiles={'coords':cfname})
+
+    def test_051_output_coord_covar( self ):
+        '''
+        With station heights
+        '''
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=(171.001,-44.995,20.0))
+        obs=[]
+        obs.append(AZ(st1,st2,0.0015))
+        obs.append(SD(st1,st2,0.005))
+        obs.append(LV(st1,st2,0.025))
+        net=Network.Network()
+        net.addStation(st1)
+        net.addStation(st2)
+        adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
+        adj.setConfig('fix','ST1')
+        adj.setConfig('refraction_coefficient','0.0')
+        cfname=self.outputFilePath('test51_coords.csv')
+        adj.setConfig('output_coordinate_file','covariances '+cfname)
+        self.runAdjustment('Test 51',adj,outputfiles={'coords':cfname})
+
     def test_100_locator_plugin( self ):
         '''
         Station locator plugin
@@ -229,7 +289,7 @@ class AdjustmentTestCase( fileunittest.TestCase ):
                 self.check('Test 200: Observation '+str(i)+' attributes:',[v.attributes.get('eqpt'),v.attributes.get('setup')])
 
 
-    def test_250_csv_attribute( self ):
+    def test_250_setup_height_calcs( self ):
         '''
         Height setup calculator
         '''
@@ -249,6 +309,49 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         adj.setConfig('fix_setup_height','A 0.25')
         adj.setConfig('debug_observation_equations','true')
         self.runAdjustment('Test 250',adj,checkListing=True)
+
+    def test_251_setup_height_re( self ):
+        '''
+        Height setup calculator
+        '''
+        global basedir
+        df=os.path.join(basedir,'data','testadj1.csv')
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=[ 171.0024646771,  -45.000160237 ,   15.9343333328])
+        net=Network.Network()
+        net.addStation(st1,st2)
+        adj=Adjustment.Adjustment(stations=net, verbose=True)
+        adj.setConfig('data_file','"'+df+'" attributes=eqpt,setup')
+        adj.setConfig('fix','ST1')
+        adj.setConfig('use_plugin','setup_height_plugin')
+        adj.setConfig('calculate_setup_heights','true')
+        adj.setConfig('inst_trgt_setup_attributes','none setup')
+        adj.setConfig('valid_setup_regex','[A-Z]')
+        adj.setConfig('fix_setup_height','[AB] 0.25')
+        adj.setConfig('debug_observation_equations','true')
+        self.runAdjustment('Test 251',adj,checkListing=True)
+
+    def test_252_setup_height_float( self ):
+        '''
+        Height setup calculator
+        '''
+        global basedir
+        df=os.path.join(basedir,'data','testadj1.csv')
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=[ 171.0024646771,  -45.000160237 ,   15.9343333328])
+        net=Network.Network()
+        net.addStation(st1,st2)
+        adj=Adjustment.Adjustment(stations=net, verbose=True)
+        adj.setConfig('data_file','"'+df+'" attributes=eqpt,setup')
+        adj.setConfig('fix','ST1')
+        adj.setConfig('use_plugin','setup_height_plugin')
+        adj.setConfig('calculate_setup_heights','true')
+        adj.setConfig('inst_trgt_setup_attributes','none setup')
+        adj.setConfig('valid_setup_regex','[A-Z]')
+        adj.setConfig('fix_setup_height','A 0.25')
+        adj.setConfig('fix_setup_height','B 0.75 0.0025')
+        adj.setConfig('debug_observation_equations','true')
+        self.runAdjustment('Test 252',adj,checkListing=True)
 
 if __name__=="__main__":
     fileunittest.main()
