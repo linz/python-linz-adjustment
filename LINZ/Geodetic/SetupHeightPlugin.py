@@ -133,7 +133,7 @@ class SetupHeightPlugin( Plugin ):
                     error=floatSetups[setup].error
                 else:
                     for constraint in floatSetups.values():
-                        if constraint.codere is not None and codere.match(setup):
+                        if constraint.codere is not None and constraint.codere.match(setup):
                             value=constraint.value
                             float=value
                             error=constraint.error
