@@ -1576,9 +1576,8 @@ class Adjustment( object ):
         self.runSetup()
         try:
             self.runCalculateSolution()
-        except ConvergenceError:
+        finally:
             self.runOutputs()
-            raise
 
     @staticmethod
     def main(plugins=None):
