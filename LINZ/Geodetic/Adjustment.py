@@ -418,8 +418,8 @@ class Adjustment( object ):
             if s.startswith('@'):
                 n=Network()
                 n.readCsv(s[1:])
-                for s in n:
-                    yield s.code
+                for s in n.stations():
+                    yield s.code()
             else:
                 yield s
 
