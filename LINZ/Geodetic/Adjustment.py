@@ -449,12 +449,10 @@ class Adjustment( object ):
             self.options.dataFiles.append(
                 {'filename':filename,'attributes':attributes})
         elif item == 'output_coordinate_file':
-            while True:
-                m=re.match(r'(\w+)\s+(\S.*)$',value,re.I)
-                if not m:
-                    break
-                option=m.group(1).lower()
-                value=m.group(2)
+            parts=self.splitConfigValue(value)
+            self.options.outputStationFile=parts[0]
+            for option in parts[1:]:
+                option=option.lower()
                 if option == 'geodetic':
                     self.options.outputStationFileGeodetic=True
                 elif option == 'xyz':
@@ -465,22 +463,19 @@ class Adjustment( object ):
                     self.options.outputStationErrorEllipses=True
                 elif option == 'offsets':
                     self.options.outputStationOffsets=True
-                elif option == 'to':
-                    break
                 else:
                     raise RuntimeError('Invalid output_coordinate_file option '+option)
-            self.options.outputStationFile=value
         elif item == 'residual_csv_file':
             parts=self.splitConfigValue(value)
             self.options.outputResidualFile=parts[0]
             options={}
             for p in parts[1:]:
-                m = re.match(r'^(\w+)\=(.+)$',p)
+                m = re.match(r'^(\w+)(?:\=(.+))?$',p)
                 if m:
                     options[m.group(1)]=m.group(2)
                 else:
                     raise RuntimeError("Invalid data_file attribute "+p)
-                self.options.outputResidualFileOptions=options
+            self.options.outputResidualFileOptions=options
         # Station selection
         elif item == 'fix':
             self.options.fixedStations.extend(((True,v) for v in self._splitStationList(value)))
@@ -1398,10 +1393,14 @@ class Adjustment( object ):
             attdef=options['attributes']
             attributes=[x for x in re.split(r'\W+',attdef) if len(x) > 0]
 
+        wkt='wkt' in options
+
         with open(csvfile,"wb") as csvf:
             csvw=csv.writer(csvf)
             cols=['fromstn','tostn','fromhgt','tohgt','obstype','obsset','value','error','calcval','residual','reserr','stdres']
             cols.extend(attributes)
+            if wkt:
+                cols.append('wkt')
             csvw.writerow(cols)
             lastset=0
             for obs,res,rescvr in self.residuals():
@@ -1436,6 +1435,20 @@ class Adjustment( object ):
                         seformat.format(abs(resv/reserr)) if reserr is not None else None
                         ]
                     data.extend([obsv.attributes.get(a) for a in attributes])
+                    if wkt:
+                        obswkt=''
+                        try:
+                            llh0=self.stations.get(obsv.inststn).llh()
+                            if obsv.trgtstn is not None:
+                                llh1=self.stations.get(obsv.trgtstn).llh()
+                                obswkt='LINESTRING Z({0:.9f} {1:.9f} {2:.4f},{3:.9f} {4:.9f} {5:.4f})'.format(
+                                    llh0[0],llh0[1],llh0[2],llh1[0],llh1[1],llh1[2])
+                            else:
+                                obswkt='POINT Z({0:.9f} {1:.9f} {2:.4f})'.format(
+                                    llh0[0],llh0[1],llh0[2])
+                        except:
+                            obswkt=None
+                        data.append(obswkt)
                     csvw.writerow(data)
         
     def _getExtraStationDataFunc( self ):

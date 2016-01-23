@@ -32,10 +32,17 @@ data_file APS150750.SNX
 # Optional output files
 # 
 # Observation residuals
+#
+# Can include options
+#   attributes=xxx+yyy   To include attributes in the output 
+#   wkt                  To include WKT geospatial definition
+# 
+# Attributes can include source, which defines the file and line the observation 
+# is read from (if supported by the data file reader)
 
 residual_csv_file wark2015lt-residuals.csv
 
-# Station coordinates.  Filename can be preceded by options of
+# Station coordinates.  Filename can be followed by options of
 #    geodetic     output coords as lat/lon/ell hgt
 #    xyz          output coords geocentric XYZ
 #    covariances  include a priori coordinate ENU covariance information
@@ -44,7 +51,7 @@ residual_csv_file wark2015lt-residuals.csv
 #    to           the rest of the command is the filename,
 #                 including spaces
 #
-#  eg output_coordinate_file geodetic covariances newcoords.csv
+#  eg output_coordinate_file newcoords.csv geodetic covariances
 
 output_coordinate_file coords.csv
 
