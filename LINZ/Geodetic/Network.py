@@ -29,6 +29,12 @@ class Network:
 
     def loadCsv( self, csvfile, colnames=None ):
         '''
+        Deprecated function - use readCsv
+        '''
+        self.readCsv( csvfile, colnames )
+
+    def readCsv( self, csvfile, colnames=None ):
+        '''
         Load stations from a csv file.  
         Column ids (and default column names) are:
             code

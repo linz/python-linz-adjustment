@@ -393,6 +393,7 @@ class Adjustment( object ):
             # Specific outputs - only apply if verbose is True
             debugStationOffsets=False,
             debugObservationEquations=False,
+            debugFloatStations=False,
             )
 
     def splitConfigValue( self, value ):
@@ -528,10 +529,22 @@ class Adjustment( object ):
             self.options.verbose=Options.boolOption(value)
 
         # Debug options
+        elif item == 'debug':
+            for debugopt in value.lower().split():
+                if debugopt == 'observation_equations':
+                    self.options.debugObservationEquations=True
+                elif debugopt == 'station_offsets':
+                    self.options.debugStationOffsets=True
+                elif debugopt == 'float_stations':
+                    self.options.debugFloatStations=True
+                else:
+                    raise RuntimeError('Invalid debug option {0}'.format(debugopt))
         elif item == 'debug_observation_equations':
             self.options.debugObservationEquations=Options.boolOption(value)
         elif item == 'debug_station_offsets':
             self.options.debugStationOffsets=Options.boolOption(value)
+        elif item == 'debug_float_stations':
+            self.options.debugFloatStations=Options.boolOption(value)
         else:
             raise RuntimeError('Unrecognized configuration item: '+item+': '+value)
 
@@ -584,7 +597,7 @@ class Adjustment( object ):
             self.write("\nInput coordinate file:\n")
             for crdfile in self.options.stationFiles:
                 self.write("  {0}\n".format(crdfile))
-                self.stations.loadCsv(crdfile)
+                self.stations.readCsv(crdfile)
 
         # Save initial station coordinates
         originalXyz={}
@@ -1259,7 +1272,7 @@ class Adjustment( object ):
             float=func(code)
             if float is None:
                 continue
-            if self.options.debugObservationEquations:
+            if self.options.debugFloatStations:
                 self.writeDebugOutput(
                     "  Floating {0}: {1:.4f} {2:.4f}\n".format(code,float[0],float[1]))
             enuerr=np.diag((float[0],float[0],float[1]))
@@ -1268,6 +1281,8 @@ class Adjustment( object ):
             code=stn.code()
             xyz=self.originalXyz.get(code)
             if xyz is None:
+                if self.options.debugFloatStations:
+                    self.writeDebugOutput("  Using transient coord for float of {0}\n".format(code))
                 xyz=stn.xyz()
             xyz=np.array(xyz)
             enu=stn.enu()
@@ -1559,8 +1574,11 @@ class Adjustment( object ):
 
     def run( self ):
         self.runSetup()
-        self.runCalculateSolution()
-        self.runOutputs()
+        try:
+            self.runCalculateSolution()
+        except ConvergenceError:
+            self.runOutputs()
+            raise
 
     @staticmethod
     def main(plugins=None):
