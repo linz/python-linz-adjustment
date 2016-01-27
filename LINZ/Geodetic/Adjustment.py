@@ -377,8 +377,11 @@ class Adjustment( object ):
             fixedStations=[],
             acceptStations=[],
             floatStations=[],
-            reweightObsType={},
             ignoreMissingStations=False,
+
+            # ObservationOptions
+            reweightObservations=[],
+            rejectObservations=[],
 
             # Adjustment options
             minIterations=0,
@@ -498,14 +501,27 @@ class Adjustment( object ):
             self.options.ignoreMissingStations=Options.boolOption(value)
 
         # Observation options
+        # (deprecated reweight_observation_type)
         elif item == 'reweight_observation_type':
-            if value != '':
-                match=re.match(r'([a-z]{2})\s+(\d+(?:\.\d+)?)$',value,re.I)
-                if not match:
-                    raise RuntimeError('Invalid reweight_observation_type option: '+value)
-                typecode=match.group(1).upper()
-                factor=float(match.group(2))
-                self.options.reweightObsType[typecode]=factor
+            match=re.match(r'([a-z]{2})\s+(\d+(?:\.\d+)?)$',value,re.I)
+            if not match:
+                raise RuntimeError('Invalid reweight_observation_type option: '+value)
+            typecode=match.group(1).upper()
+            factor=float(match.group(2))
+            criteria=self._matchObsFunc('type='+typecode)
+            self.options.reweightObservations.append((criteria,factor))
+        elif item == 'reweight_observations':
+            match=re.match(r'(\d+(?:\.\d+)?)\s+(\S.*?)\s*$',value,re.I)
+            if not match:
+                raise RuntimeError('Invalid reweight_observations option: '+value)
+            factor=float(match.group(1))
+            criteria=self._matchObsFunc(match.group(2))
+            self.options.reweightObservations.append((criteria,factor))
+        elif item == 'reject_observations':
+            if value == '':
+                raise RuntimeError('Missing reject_observations criteria')
+            criteria=self._matchObsFunc(match.group(2))
+            self.options.rejectObservations.append(criteria)
 
         # Adjustment options
         elif item == 'convergence_tolerance':
@@ -604,14 +620,6 @@ class Adjustment( object ):
                 pass
         self.originalXyz=originalXyz
 
-        # Load the data files
-        reweight=self.options.reweightObsType
-        if len(reweight) > 0:
-            self.write("\nReweighting input observations:\n")
-            for otype in sorted(reweight.keys()):
-                self.write("  Observation type {0} errors scaled by {1:6.3f}\n"
-                           .format(otype,reweight[otype]))
-
         first=True
         for obsfile in self.options.dataFiles:
             filename=obsfile['filename']
@@ -647,19 +655,14 @@ class Adjustment( object ):
             else:
                 raise RuntimeError('Invalid observation file type '+filetype)
 
-            for obs in reader(filename,**attributes):
-                typecode=obs.obstype.code
-                if typecode in reweight:
-                    factor=reweight[typecode]
-                    for ov in obs.obsvalues:
-                        if ov.stderr is not None:
-                            ov.stderr *= factor
-                    if obs.covariance is not None:
-                        obs.covariance *= factor*factor
-                self.observations.append(obs)
+            self.observations.extend(reader(filename,**attributes))
 
         if self.options.acceptStations:
             self.filterObsByStation(self.options.acceptStations)
+        if self.options.rejectObservations:
+            self.filterObsByCriteria(self.options.rejectObservations)
+        if self.options.reweightObservations:
+            self.reweightObsByCriteria(self.options.reweightObservations)
 
     def usedStations( self, includeFixed=True ):
         '''
@@ -674,7 +677,7 @@ class Adjustment( object ):
                 used[obsval.trgtstn]=1
         used={code:1 for code in used if self.stations.get(code) is not None}
         if not includeFixed:
-            fixedstn=self.useStationFunc(self.options.fixedStations,False)
+            fixedstn=self._useStationFunc(self.options.fixedStations,False)
             used={code:1 for code in used if not fixedstn(code)}
         return used
 
@@ -693,7 +696,52 @@ class Adjustment( object ):
         missing.sort( key=lambda x: x[1] )
         return missing
 
-    def useStationFunc( self, uselist, default=True ):
+    def _matchCodeFunc( self, code ):
+        code=code.lower()
+        if code == '*':
+            f=lambda c: True
+        elif code.startswith('re:'):
+            codere=re.compile('^'+code[3:]+'$',re.I)
+            f=lambda c: codere.match(c)
+        else:
+            if code.startswith(':'):
+                code=code[1:]
+            f=lambda c: c.lower() == code
+        return f
+
+    def _matchObsFunc( self, conditions ):
+        # Need functions to isolate closures...
+        def instfunc(code):
+            f=self._matchCodeFunc(code)
+            return lambda o, ov: f(ov.inststn)
+        def trgtfunc(code):
+            f=self._matchCodeFunc(code)
+            return lambda o, ov: f(ov.trgtstn)
+        def typefunc(value):
+            value=value.upper()
+            return lambda o,ov: o.obstype.code == value
+
+        try:
+            tests=[]
+            for condition in conditions.split():
+                field,value=condition.split('=',1)
+                field=field.lower
+                if field == 'inststn':
+                    tests.append(instfunc(value))
+                elif field == 'trgtstn':
+                    tests.append(trgtfunc(value))
+                elif field == 'type':
+                    tests.append(typefunc(value))
+            def testfunc(o,ov):
+                for t in tests:
+                    if( t(o,ov) ): 
+                        return True
+                return False
+            return testfunc
+        except:
+            raise RuntimeError('Invalid observation selection criteria: '+conditions)
+
+    def _useStationFunc( self, uselist, default=True ):
         '''
         Create a function to test a station code against a set of
         criteria.  The criteria are defined in a uselist which is
@@ -717,23 +765,13 @@ class Adjustment( object ):
         if not uselist:
             return lambda code: default
 
-        def usefunc( use, code ):
-            code=code.lower()
-            if code == '*':
-                f=lambda c,s: use
-            elif code.startswith('re:'):
-                codere=re.compile('^'+code[3:]+'$',re.I)
-                f=lambda c,s: use if codere.match(c) else s
-            else:
-                if code.startswith(':'):
-                    code=code[1:]
-                f=lambda c,s: use if c==code else s
-            return f
-
         # If first action is to set status to True, then initial status must
         # be false
         status0=uselist[0][0]
         startStatus=False if status0 is True else True if status0 is False else None
+        def usefunc( use, code ):
+            m=self._matchCodeFunc(code)
+            return lambda c,s: use if m(c) else s
         funcs=tuple(usefunc(use,code) for use,code in uselist)
 
         def usestation( code ):
@@ -747,13 +785,26 @@ class Adjustment( object ):
 
     def filterObsByStation( self, uselist ):
         '''
-        Filter observations by station.  Takes a list of stations
-        keep or stations to remove, or both (though that doesn't make 
-        much sense!)
+        Filter observations by station.  Takes a list of station
+        accept/reject criteria 
         '''
-        usestn=self.useStationFunc(uselist)
+        usestn=self._useStationFunc(uselist)
         useobs=lambda obs,ov: usestn(ov.inststn) and usestn(ov.trgtstn)
+        self.write("Applying station rejection criteria to observations")
         self.filterObservations(useobs)
+
+    def filterObsByCriteria( self, criteria ):
+        if len(criteria) == 0:
+            return
+        self.write("Applying observation rejection criteria")
+        if len(criteria) == 1:
+            self.filterObservations( criteria[0] )
+        def criteriafunc(o,ov):
+            for c in criteria:
+                if c(o,ov):
+                    return True
+            return False
+        self.filterObservations( criteriafunc )
 
     def filterObservations( self, select ):
         '''
@@ -782,6 +833,34 @@ class Adjustment( object ):
             goodobs.append(o)
         self.write("Filtering {0} observations to {1}\n".format(len(self.observations),len(goodobs)))
         self.observations=goodobs
+
+    def reweightObsByCriteria( self, criteria ):
+        '''
+        Reweight observations based on a list of (func,weight) pairs where
+        func is a function of observation and observation value returning a
+        True if the criteria are matched, and weight is a reweighting factor
+        applied to the standard error.
+        '''
+        if len(criteria) < 1:
+            return
+        self.write("Applying observation reweighting")
+        for obs in self.observations:
+            w=numpy.ones(len(obs.obsvalues),obs.obstype.nvalue)
+            matched=False
+            for i,ov in enumerate(obs.obsvalues):
+                for test,weight in criteria:
+                    if test(obs,ov):
+                        matched=True
+                        w[i] *= weight
+            if not matched:
+                continue
+            if obs.covariance is None:
+                for i,ov in enumerate(obs,obsvalues):
+                    if ov.stderr is not None:
+                        ov.stderr *= w[i,0]
+            else:
+                w=w.ravel()
+                obs.covariance=obs.covariance*w*w.reshape((len(w),1))
 
     def countObservations( self ):
         counts={}
@@ -1259,7 +1338,7 @@ class Adjustment( object ):
         # Note that if there is no original coordinate then the 
         # float coordinate changes at each iteration, so the
         # solution will not converge quickly!
-        func=self.useStationFunc(self.options.floatStations,None)
+        func=self._useStationFunc(self.options.floatStations,None)
         for code in self.coordParamMapping:
             params=self.coordParamMapping[code][0]
             if len(params) == 0:

@@ -83,17 +83,27 @@ output_coordinate_file coords.csv
 # ignore_missing_stations yes
 
 #=============================================================
-# Adjustment model set up 
+# Observation options
 
-# Apply a scale factor to the supplied weights for observation type
-`
-# reweight_observation_type type factor
-
-reweight_observation_type GX 2.6
-reweight_observation_type HA 0.6
-reweight_observation_type LV 1.6
-reweight_observation_type SD 0.5
-reweight_observation_type ZD 2.0
+# Observations can be rejected (ie removed) or reweighted based
+# on criteria of instrument station, target station, or observation type
+#
+#    inststn=code
+#    inststn=re:codere
+#    trgtstn=code
+#    trgtstn=re:codere
+#    type=typecode
+#
+# Multiple criteria can be used to define the affected observations,
+# eg
+#
+#  reweight_observations 2.0 inststn=re:TEST.* type=HA
+#  reject_observations trgtstn=AL23
+#
+# Observations are also filtered based on the accept/reject station criteria
+#
+# The modifications are applied immediately after the observations have been
+# read.
 
 # Refraction correction (applied only to zenith distance obs)
 
