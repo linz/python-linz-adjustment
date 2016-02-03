@@ -444,6 +444,7 @@ class StationLocator( object ):
         fixedStations=self.getFixedStations()
         success=False
         write=self.write
+        savedStatus=None
         #self.write=lambda x: None
         write("\nTrying fixing one angle\n")
         try:
@@ -587,8 +588,9 @@ class StationLocator( object ):
                 break
 
             if not success:
-                self.resetStatus(savedStatus)
-                write("Restored {0} original fixed stations\n".format(len(fixedStations)))
+                if savedStatus is not None:
+                    self.resetStatus(savedStatus)
+                    write("Restored {0} original fixed stations\n".format(len(fixedStations)))
         finally:
             self.write=write
         return success

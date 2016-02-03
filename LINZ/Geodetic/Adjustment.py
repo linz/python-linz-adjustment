@@ -520,7 +520,7 @@ class Adjustment( object ):
         elif item == 'reject_observations':
             if value == '':
                 raise RuntimeError('Missing reject_observations criteria')
-            criteria=self._matchObsFunc(match.group(2))
+            criteria=self._matchObsFunc(value)
             self.options.rejectObservations.append(criteria)
 
         # Adjustment options
@@ -702,7 +702,7 @@ class Adjustment( object ):
             f=lambda c: True
         elif code.startswith('re:'):
             codere=re.compile('^'+code[3:]+'$',re.I)
-            f=lambda c: codere.match(c)
+            f=lambda c: codere.match(c) is not None
         else:
             if code.startswith(':'):
                 code=code[1:]
@@ -725,18 +725,29 @@ class Adjustment( object ):
             tests=[]
             for condition in conditions.split():
                 field,value=condition.split('=',1)
-                field=field.lower
+                reverse=False
+                if field.endswith('!'):
+                    reverse=True
+                    field=field[:-1].strip()
+                field=field.lower()
                 if field == 'inststn':
-                    tests.append(instfunc(value))
+                    f=instfunc(value)
                 elif field == 'trgtstn':
-                    tests.append(trgtfunc(value))
+                    f=trgtfunc(value)
                 elif field == 'type':
-                    tests.append(typefunc(value))
+                    f=typefunc(value)
+                else: 
+                    raise RuntimeError('')
+                if reverse:
+                    f1=f
+                    f=lambda o,ov: not f1(o,ov)
+                setattr(f,'condition',condition)
+                tests.append(f)
             def testfunc(o,ov):
                 for t in tests:
-                    if( t(o,ov) ): 
-                        return True
-                return False
+                    if not t(o,ov): 
+                        return False
+                return True
             return testfunc
         except:
             raise RuntimeError('Invalid observation selection criteria: '+conditions)
@@ -790,21 +801,25 @@ class Adjustment( object ):
         '''
         usestn=self._useStationFunc(uselist)
         useobs=lambda obs,ov: usestn(ov.inststn) and usestn(ov.trgtstn)
-        self.write("Applying station rejection criteria to observations")
+        self.write("Applying station rejection criteria to observations\n")
         self.filterObservations(useobs)
 
     def filterObsByCriteria( self, criteria ):
+        '''
+        Apply rejection criteria to observations
+        '''
         if len(criteria) == 0:
             return
-        self.write("Applying observation rejection criteria")
         if len(criteria) == 1:
-            self.filterObservations( criteria[0] )
-        def criteriafunc(o,ov):
-            for c in criteria:
-                if c(o,ov):
-                    return True
-            return False
-        self.filterObservations( criteriafunc )
+            criteriafunc=criteria[0]
+        else:
+            def criteriafunc(o,ov):
+                for c in criteria:
+                    if c(o,ov):
+                        return True
+                return False
+        self.write("Applying observation rejection criteria\n")
+        self.filterObservations( lambda o, ov: not criteriafunc(o,ov) )
 
     def filterObservations( self, select ):
         '''
@@ -845,7 +860,7 @@ class Adjustment( object ):
             return
         self.write("Applying observation reweighting")
         for obs in self.observations:
-            w=numpy.ones(len(obs.obsvalues),obs.obstype.nvalue)
+            w=np.ones((len(obs.obsvalues),obs.obstype.nvalue))
             matched=False
             for i,ov in enumerate(obs.obsvalues):
                 for test,weight in criteria:
@@ -855,7 +870,7 @@ class Adjustment( object ):
             if not matched:
                 continue
             if obs.covariance is None:
-                for i,ov in enumerate(obs,obsvalues):
+                for i,ov in enumerate(obs.obsvalues):
                     if ov.stderr is not None:
                         ov.stderr *= w[i,0]
             else:

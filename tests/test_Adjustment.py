@@ -280,6 +280,68 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         adj.setConfig('output_coordinate_file',cfname+' offsets')
         self.runAdjustment('Test 61',adj,outputfiles={'coords':cfname})
 
+    def test_070_reject_obs( self ):
+        '''
+        Reject observation
+        '''
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=(171.0,-45.001,20.0))
+        st3=Station.Station('ST3',llh=(171.001,-45.0,15.0))
+        st4=Station.Station('ST4',llh=(171.001,-45.001,80.0))
+        obs=[]
+        obs.append(SD(st1,st2))
+        obs.append(SD(st1,st3))
+        obs.append(SD(st2,st3))
+        obs.append(SD(st2,st1))
+        obs.append(SD(st2,st4))
+        obs.append(SD(st3,st4))
+        obs.append(HA(st3,[st1,st2,st4]))
+        obs.append(HA(st4,[st1,st2]))
+        net=Network.Network()
+        net.addStation(st1)
+        net.addStation(st2)
+        net.addStation(st3)
+        net.addStation(st4)
+
+        adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
+        adj.setConfig('fix','*')
+        cfname=self.outputFilePath('test70_residuals.csv')
+        adj.setConfig('residual_csv_file',cfname)
+        adj.setConfig('reject_observations','inststn=ST1')
+        adj.setConfig('reject_observations','trgtstn=re:ST[34] type=HA')
+        self.runAdjustment('Test 70',adj,outputfiles={'obs':cfname})
+
+    def test_071_reweight_obs( self ):
+        '''
+        Reweight observation
+        '''
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=(171.0,-45.001,20.0))
+        st3=Station.Station('ST3',llh=(171.001,-45.0,15.0))
+        st4=Station.Station('ST4',llh=(171.001,-45.001,80.0))
+        obs=[]
+        obs.append(SD(st1,st2))
+        obs.append(SD(st1,st3))
+        obs.append(SD(st2,st3))
+        obs.append(SD(st2,st1))
+        obs.append(SD(st2,st4))
+        obs.append(SD(st3,st4))
+        obs.append(HA(st3,[st1,st2,st4]))
+        obs.append(HA(st4,[st1,st2]))
+        net=Network.Network()
+        net.addStation(st1)
+        net.addStation(st2)
+        net.addStation(st3)
+        net.addStation(st4)
+
+        adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
+        adj.setConfig('fix','*')
+        cfname=self.outputFilePath('test71_residuals.csv')
+        adj.setConfig('residual_csv_file',cfname)
+        adj.setConfig('reweight_observations','2.0 inststn=ST1')
+        adj.setConfig('reweight_observations','3 trgtstn=re:ST[34] type=HA')
+        self.runAdjustment('Test 71',adj,outputfiles={'obs':cfname})
+
     def test_100_locator_plugin( self ):
         '''
         Station locator plugin
@@ -404,7 +466,7 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         adj.setConfig('calculate_setup_heights','true')
         adj.setConfig('inst_trgt_setup_attributes','none setup')
         adj.setConfig('valid_setup_regex','[A-Z]')
-        adj.setConfig('fix_setup_height','[AB] 0.25')
+        adj.setConfig('fix_setup_height','re:[AB] 0.25')
         adj.setConfig('debug_observation_equations','true')
         self.runAdjustment('Test 251',adj,checkListing=True)
 
@@ -426,7 +488,7 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         adj.setConfig('inst_trgt_setup_attributes','none setup')
         adj.setConfig('valid_setup_regex','[A-Z]')
         adj.setConfig('fix_setup_height','A 0.25')
-        adj.setConfig('fix_setup_height','B 0.75 0.0025')
+        adj.setConfig('float_setup_height','B 0.75 0.0025')
         adj.setConfig('debug_observation_equations','true')
         self.runAdjustment('Test 252',adj,checkListing=True)
 

@@ -30,6 +30,14 @@ class SetupHeightPlugin( Plugin ):
             floatSetupValue={},
             )
 
+    def _setupFunc( self, attr ):
+        if attr == 'inststn':
+            return lambda v: v.inststn
+        elif attr == 'trgtstn':
+            return lambda v: v.trgtstn
+        else:
+            return lambda v: v.attributes.get(attr)
+
     def setConfigOption( self, item, value ):
         if item == 'calculate_setup_heights':
             self.options.calculateSetupHeights=Options.boolOption(value)
@@ -38,6 +46,7 @@ class SetupHeightPlugin( Plugin ):
             if len(parts) != 2:
                 raise RuntimeError("inst_trgt_setup_attributes must define two attributes")
             self.options.calculateSetupAttributes=parts
+            self.setupFuncs=tuple(self._setupFunc(p) for p in parts)
         elif item == 'valid_setup_regex':
             try:
                 self.options.validSetupRegex.append(re.compile(value))
@@ -49,22 +58,34 @@ class SetupHeightPlugin( Plugin ):
             except:
                 raise RuntimeError("Invalid invalid_setup_regex "+value)
         elif item == 'fix_setup_height':
-            m=re.match(r'^(\S+)\s+([-+]?\d+(?:\.\d+)?)(?:\s+(\d+(?:\.\d+)?))?$',value)
+            m=re.match(r'^(\S+)\s+([-+]?\d+(?:\.\d+)?)$',value)
             if m:
                 code=m.group(1)
                 codere=None
-                if re.escape(code) != code:
+                if code.startswith('re:'):
                     try:
-                        codere=re.compile(code,re.I)
+                        codere=re.compile(code[3:],re.I)
                     except:
-                        codere=None
+                        raise RuntimeError("Invalid regular expression in fix_setup_height")
                 value=float(m.group(2))
-                error=float(m.group(3)) if m.group(3) is not None else None
+                constraint=self.SetupHeightConstraint(code,codere,value,None)
+                self.options.fixSetupValue[code]=constraint
+            else:
+                raise RuntimeError("Invalid fix_setup_height value "+value)
+        elif item == 'float_setup_height':
+            m=re.match(r'^(\S+)\s+([-+]?\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)$',value)
+            if m:
+                code=m.group(1)
+                codere=None
+                if code.startswith('re:'):
+                    try:
+                        codere=re.compile(code[3:],re.I)
+                    except:
+                        raise RuntimeError("Invalid regular expression in float_setup_height")
+                value=float(m.group(2))
+                error=float(m.group(3))
                 constraint=self.SetupHeightConstraint(code,codere,value,error)
-                if error is None:
-                    self.options.fixSetupValue[code]=constraint
-                else:
-                    self.options.floatSetupValue[code]=constraint
+                self.options.floatSetupValue[code]=constraint
             else:
                 raise RuntimeError("Invalid fix_setup_height value "+value)
         else:
@@ -74,14 +95,14 @@ class SetupHeightPlugin( Plugin ):
     def setupParameters( self ):
         if not self.options.calculateSetupHeights:
             return
-        setupAttributes=self.options.calculateSetupAttributes
+        setupFuncs = self.setupFuncs
         oldsetups=self.setupHeights
         self.setupHeights={}
         setups={}
         for o in self.adjustment.observations:
             for v in o.obsvalues:
-                for attr in setupAttributes:
-                    setup=v.attributes.get(attr,None)
+                for f in setupFuncs:
+                    setup=f(v)
                     if setup is not None:
                         if setup not in setups:
                             setups[setup] = 1
@@ -175,12 +196,12 @@ class SetupHeightPlugin( Plugin ):
     def calcStationOffsets( self, obs ):
         offsets=[]
         havesetups=False
-        setupAttributes=self.options.calculateSetupAttributes
+        setupFuncs=self.setupFuncs
         for v in obs.obsvalues:
             sevalue=[Station.OFFSET_H,0.0,0.0,None,None]
             offsets.append(sevalue)
-            for i,attr in enumerate(setupAttributes):
-                setup=v.attributes.get(attr,None)
+            for i,f in enumerate(setupFuncs):
+                setup=f(v)
                 if setup in self.setupHeights:
                     havesetups=True
                     sedata=self.setupHeights[setup]

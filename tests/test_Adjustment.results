@@ -391,6 +391,106 @@ ST1,ST1,-4461982.7476,706703.5779,-4487357.9547,0.0,0.0,0.0,-4.99999,-0.50000,-1
 
 >>>>
 ======================================================================
+>>>> test_70__output Applying observation rejection criteria
+Filtering 8 observations to 6
+
+Observation summary:
+  4 Horizontal angle observations in 2 rounds
+  4 Slope distance observations
+  Using refraction coefficient 0.075
+
+Calculating 0 parameters
+Iteration 1: max coord change 0.0000m at None
+
+Sum of squared residuals:     0.000000
+Number of parameters:         0
+Number of observations:       6
+Degrees of freedom:           6
+Standard error of unit weight 0.0000
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  HA            4   0.0000
+  SD            4   0.0000
+
+>>>> test_70__obs [SD,ST2,ST3,0.0000,0.0000,136.3528,0.0010
+, SD,ST2,ST1,0.0000,0.0000,111.5811,0.0010
+, SD,ST2,ST4,0.0000,0.0000,99.0793,0.0010
+, SD,ST3,ST4,0.0000,0.0000,128.7457,0.0010
+, HA,ST3,ST1,0.0000,0.0000,0.0000,0.0010
+HA,ST3,ST2,0.0000,0.0000,305.3551,0.0010
+, HA,ST4,ST1,0.0000,0.0000,0.0000,0.0010
+HA,ST4,ST2,0.0000,0.0000,305.3551,0.0010
+]
+>>>> test_70__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_70__station_st2_coordinates array([ 171.          ,  -45.001       ,   19.9999999991])
+>>>> test_70__station_st3_coordinates array([ 171.001       ,  -45.          ,   14.9999999991])
+>>>> test_70__station_st4_coordinates array([ 171.001       ,  -45.001       ,   79.9999999991])
+>>>> test_70__output_file_obs fromstn,tostn,fromhgt,tohgt,obstype,obsset,value,error,calcval,residual,reserr,stdres
+ST2,ST3,0.0,0.0,SD,1,136.352819,0.001000,136.352819,0.000000,0.001000,0.0000
+ST2,ST1,0.0,0.0,SD,2,111.581057,0.001000,111.581057,0.000000,0.001000,0.0000
+ST2,ST4,0.0,0.0,SD,3,99.079284,0.001000,99.079284,0.000000,0.001000,0.0000
+ST3,ST4,0.0,0.0,SD,4,128.745712,0.001000,128.745712,0.000000,0.001000,0.0000
+ST3,ST1,0.0,0.0,HA,5,0.000000,0.001000,0.000000,0.000000,0.000707,0.0000
+ST3,ST2,0.0,0.0,HA,5,305.355065,0.001000,305.355065,0.000000,0.000707,0.0000
+ST4,ST1,0.0,0.0,HA,6,0.000000,0.001000,0.000000,0.000000,0.000707,0.0000
+ST4,ST2,0.0,0.0,HA,6,305.355065,0.001000,305.355065,0.000000,0.000707,0.0000
+
+>>>>
+======================================================================
+>>>> test_71__output Applying observation reweighting
+Observation summary:
+  5 Horizontal angle observations in 2 rounds
+  6 Slope distance observations
+  Using refraction coefficient 0.075
+
+Calculating 0 parameters
+Iteration 1: max coord change 0.0000m at None
+
+Sum of squared residuals:     0.000000
+Number of parameters:         0
+Number of observations:       9
+Degrees of freedom:           9
+Standard error of unit weight 0.0000
+
+Summary of residuals
+
+  Type       NRes   RMS   
+  HA            5   0.0000
+  SD            6   0.0000
+
+>>>> test_71__obs [SD,ST1,ST2,0.0000,0.0000,111.5811,0.0020
+, SD,ST1,ST3,0.0000,0.0000,79.0054,0.0020
+, SD,ST2,ST3,0.0000,0.0000,136.3528,0.0010
+, SD,ST2,ST1,0.0000,0.0000,111.5811,0.0010
+, SD,ST2,ST4,0.0000,0.0000,99.0793,0.0010
+, SD,ST3,ST4,0.0000,0.0000,128.7457,0.0010
+, HA,ST3,ST1,0.0000,0.0000,0.0000,0.0010
+HA,ST3,ST2,0.0000,0.0000,305.3551,0.0010
+HA,ST3,ST4,0.0000,0.0000,270.0004,0.0030
+, HA,ST4,ST1,0.0000,0.0000,0.0000,0.0010
+HA,ST4,ST2,0.0000,0.0000,305.3551,0.0010
+]
+>>>> test_71__station_st1_coordinates array([ 171.          ,  -45.          ,    9.9999999991])
+>>>> test_71__station_st2_coordinates array([ 171.          ,  -45.001       ,   19.9999999991])
+>>>> test_71__station_st3_coordinates array([ 171.001       ,  -45.          ,   14.9999999991])
+>>>> test_71__station_st4_coordinates array([ 171.001       ,  -45.001       ,   79.9999999991])
+>>>> test_71__output_file_obs fromstn,tostn,fromhgt,tohgt,obstype,obsset,value,error,calcval,residual,reserr,stdres
+ST1,ST2,0.0,0.0,SD,1,111.581057,0.002000,111.581057,0.000000,0.002000,0.0000
+ST1,ST3,0.0,0.0,SD,2,79.005365,0.002000,79.005365,0.000000,0.002000,0.0000
+ST2,ST3,0.0,0.0,SD,3,136.352819,0.001000,136.352819,0.000000,0.001000,0.0000
+ST2,ST1,0.0,0.0,SD,4,111.581057,0.001000,111.581057,0.000000,0.001000,0.0000
+ST2,ST4,0.0,0.0,SD,5,99.079284,0.001000,99.079284,0.000000,0.001000,0.0000
+ST3,ST4,0.0,0.0,SD,6,128.745712,0.001000,128.745712,0.000000,0.001000,0.0000
+ST3,ST1,0.0,0.0,HA,7,0.000000,0.001000,0.000000,0.000000,0.000725,0.0000
+ST3,ST2,0.0,0.0,HA,7,305.355065,0.001000,305.355065,0.000000,0.000725,0.0000
+ST3,ST4,0.0,0.0,HA,7,270.000354,0.003000,270.000354,0.000000,0.002920,0.0000
+ST4,ST1,0.0,0.0,HA,8,0.000000,0.001000,0.000000,0.000000,0.000707,0.0000
+ST4,ST2,0.0,0.0,HA,8,305.355065,0.001000,305.355065,0.000000,0.000707,0.0000
+
+>>>>
+======================================================================
 >>>> test_100__output 
 Observation summary:
   1 Azimuth observations

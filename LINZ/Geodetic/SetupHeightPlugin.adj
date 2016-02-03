@@ -10,6 +10,7 @@ use_plugin setup_height_plugin
 calculate_setup_heights no
 
 # Observation attributes defining the instrument and target setups
+# Can be either inststn, trgtstn, or the name of an attribute of an observation.
 
 inst_trgt_setup_attributes inst_setup trgt_setup
 
@@ -26,5 +27,10 @@ inst_trgt_setup_attributes inst_setup trgt_setup
 # invalid_setup_regex TS3.*
 
 # Fix setup heights defines heights that will be set but not calculated
-
+#   code can be a specific code or a re:regex
+#
 # fix_setup_height code value
+
+# Float setup heights.  Adds an observation equation for the setup height.
+#
+#  float_setup_height code value error
