@@ -10,12 +10,12 @@ from __future__ import unicode_literals
 
 import sys
 import os.path
-from LINZ.Geodetic.Sinex import Reader as SinexReader
+from LINZ.Geodetic.Sinex import Reader as SinexReader, COVAR_FULL
 
 from .Observation import Observation, ObservationValue
 
 def read( sinexFile, useMonument=False ):
-    snx=SinexReader(sinexFile,covariance=SinexReader.COVAR_FULL)
+    snx=SinexReader(sinexFile,covariance=COVAR_FULL)
 
     ids={}
     for id,code,soln in snx.solutions():
