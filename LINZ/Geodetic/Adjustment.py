@@ -214,6 +214,9 @@ class Adjustment( object ):
             for plugin in plugins:
                 self.addPluginClass( plugin )
         self.solved=0
+        self.dof=0
+        self.seu=0.0
+        self.ssr=0.0
 
         # Setup configuration
         if config_file is not None:
@@ -1702,12 +1705,16 @@ class Adjustment( object ):
         parser.add_argument('-s','--output-coordinate-file',help="Output station CSV file")
         parser.add_argument('-v','--verbose',action='store_true',help="Verbose output")
         parser.add_argument('-c','--create',action='store_true',help="Create an example adjustment configuration file")
+        parser.add_argument('-D','--debug',action='store_true',help="Enter the python debugger")
         args=parser.parse_args()
 
         # Crude configuration file reading, parsed to a dictionary
         # Multiple options compiled to '\n' separated string
         # Blank options have value 'y'
 
+        if args.debug:
+            import pdb
+            pdb.set_trace()
         plugins=plugins or []
         if args.create:
             if os.path.exists(args.config_file):

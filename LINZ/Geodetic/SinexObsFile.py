@@ -15,7 +15,7 @@ from LINZ.Geodetic.Sinex import Reader as SinexReader, COVAR_FULL
 from .Observation import Observation, ObservationValue
 
 def read( sinexFile, useMonument=False ):
-    snx=SinexReader(sinexFile,covariance=COVAR_FULL)
+    snx=SinexReader(sinexFile,velocities=False,covariance=COVAR_FULL)
 
     ids={}
     for id,code,soln in snx.solutions():
