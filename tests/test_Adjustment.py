@@ -55,6 +55,7 @@ class AdjustmentTestCase( fileunittest.TestCase ):
             try:
                 with open(filename) as opf:
                     filedata=opf.read()
+                    filedata=filedata.replace("\r","")
             except:
                 filedata='missing'
             try:

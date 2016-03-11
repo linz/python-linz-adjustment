@@ -87,12 +87,15 @@ output_coordinate_file coords.csv
 
 # Observations can be rejected (ie removed) or reweighted based
 # on criteria of instrument station, target station, or observation type
+# or an attribute.  Also can specify != instead of =
 #
 #    inststn=code
 #    inststn=re:codere
 #    trgtstn=code
 #    trgtstn=re:codere
 #    type=typecode
+#    attr:attribname=value
+#    attr:attribname=re:value
 #
 # Multiple criteria can be used to define the affected observations,
 # eg

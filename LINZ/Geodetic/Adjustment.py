@@ -604,6 +604,38 @@ class Adjustment( object ):
     def writeDebugOutput( self, message ):
         self.write( message, True )
 
+    def observationSourceIterator( self, observationFile, **attributes ):
+        '''
+        Interpret the observation file definition to obtain an iterator
+        over the observations in the file
+        '''
+        filetype=''
+        match=re.match(r'^(\w+)\:(.*)$',observationFile)
+        if match:
+            filetype=match.group(1).lower()
+            observationFile=match.group(2)
+        if filetype == '':
+            match=re.search(r'\.(\w+)$',observationFile)
+            if match:
+                filetype=match.group(1).lower()
+        if filetype == '' and re.search(r'\.snx(\.gz)?$',observationFile,re.I):
+            filetype = 'snx'
+        if filetype == 'msr':
+            from . import MsrFile
+            reader=MsrFile.read
+        elif filetype == 'snx':
+            from . import SinexObsFile
+            reader=SinexObsFile.read
+        elif filetype == 'csvhor':
+            from . import CsvObsFile
+            reader=CsvObsFile.readConvertToHorDist
+        elif filetype == 'csv':
+            from . import CsvObsFile
+            reader=CsvObsFile.read
+        else:
+            raise RuntimeError('Invalid observation file type '+filetype)
+        return reader(observationFile,**attributes)
+
     def loadDataFiles( self ):
 
         # Load the coordinate files
@@ -631,34 +663,8 @@ class Adjustment( object ):
                 self.write("\nObservation files:\n")
                 first=False
             self.write("  {0}\n".format(filename))
-            filetype=''
-            filetype=''
-            match=re.match(r'^(\w+)\:(.*)$',filename)
-            if match:
-                filetype=match.group(1).lower()
-                filename=match.group(2)
-            if filetype == '':
-                match=re.search(r'\.(\w+)$',filename)
-                if match:
-                    filetype=match.group(1).lower()
-            if filetype == '' and re.search(r'\.snx(\.gz)?$',filename,re.I):
-                filetype = 'snx'
-            if filetype == 'msr':
-                from . import MsrFile
-                reader=MsrFile.read
-            elif filetype == 'snx':
-                from . import SinexObsFile
-                reader=SinexObsFile.read
-            elif filetype == 'csvhor':
-                from . import CsvObsFile
-                reader=CsvObsFile.readConvertToHorDist
-            elif filetype == 'csv':
-                from . import CsvObsFile
-                reader=CsvObsFile.read
-            else:
-                raise RuntimeError('Invalid observation file type '+filetype)
-
-            self.observations.extend(reader(filename,**attributes))
+            obsiterator=self.observationSourceIterator( filename, **attributes )
+            self.observations.extend(obsiterator)
 
         if self.options.acceptStations:
             self.filterObsByStation(self.options.acceptStations)
@@ -723,6 +729,9 @@ class Adjustment( object ):
         def typefunc(value):
             value=value.upper()
             return lambda o,ov: o.obstype.code == value
+        def attrfunc(attr,value):
+            f=self._matchCodeFunc(value)
+            return lambda o,ov: f(ov.attributes.get(attr,''))
 
         try:
             tests=[]
@@ -732,13 +741,14 @@ class Adjustment( object ):
                 if field.endswith('!'):
                     reverse=True
                     field=field[:-1].strip()
-                field=field.lower()
                 if field == 'inststn':
                     f=instfunc(value)
                 elif field == 'trgtstn':
                     f=trgtfunc(value)
                 elif field == 'type':
                     f=typefunc(value)
+                elif field.startswith('attr:'):
+                    f=attrfunc(field[5:],value)
                 else: 
                     raise RuntimeError('')
                 if reverse:
