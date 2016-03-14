@@ -55,6 +55,10 @@ residual_csv_file wark2015lt-residuals.csv
 
 output_coordinate_file coords.csv
 
+# Statistics JSON file
+
+stats_json_file stats.json
+
 # ========================================================
 # Station constraint options
 #

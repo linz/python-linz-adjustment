@@ -374,6 +374,7 @@ class Adjustment( object ):
             outputStationErrorEllipses=False,
             outputStationOffsets=False,
             outputResidualFile=None,
+            outputStatsFile=None,
             outputResidualFileOptions={},
 
             # Station options
@@ -471,6 +472,8 @@ class Adjustment( object ):
                     self.options.outputStationOffsets=True
                 else:
                     raise RuntimeError('Invalid output_coordinate_file option '+option)
+        elif item == 'stats_json_file':
+            self.options.outputStatsFile=value
         elif item == 'residual_csv_file':
             parts=self.splitConfigValue(value)
             self.options.outputResidualFile=parts[0]
@@ -1628,7 +1631,25 @@ class Adjustment( object ):
                 cvrenu[0,2]/div[0,2] if div[0,2] > 0.0 else 0.0,
                 cvrenu[1,2]/div[1,2] if div[1,2] > 0.0 else 0.0)]
 
+    def writeStatsJson( self, filename ):
+        import json
+        stats={
+            'nobs': self.nobs,
+            'nparam': self.nparam,
+            'ssr': self.ssr,
+            'dof': self.dof,
+            'seu': self.seu
+            }   
+        with open(filename,'w') as jf:
+            jf.write(json.dumps(stats,indent=4,sort_keys=True))
+
     def writeOutputFiles( self ):
+        if self.options.outputStatsFile is not None:
+            try:
+                self.writeStatsJson(self.options.outputStatsFile)
+            except:
+                pass
+
         if self.options.outputResidualFile is not None:
             self.writeResidualCsv(self.options.outputResidualFile,self.options.outputResidualFileOptions)
 
