@@ -1,3 +1,33 @@
+python-linz-adjustment (2.2.0-1) trusty; urgency=medium
+
+  * Option to use more than one station file
+  * Providing more options for fixing and rejecting stations
+  * Removing exception in StationLocator - not useful!
+  * Adding option for coordinate file reference in station lists and attributes in residual output file
+  * Adding HD and option for converting SD,ZD to HD,LV
+  * Adding merge angles plugin
+  * Fixing covariance slicing bug
+  * Updating .gitignore
+  * Adding handling of invalid covariance - not sure where it comes from!
+  * Adding floating of setup heights and output of station covariances
+  * Adding more station output options and floating based on original coordinate
+  * Adding extra float station test
+  * Fixing setup height plugin bug
+  * Increasing significant digits of coordinate stats
+  * Increasing significant digits of coordinate stats
+  * Replacing loadCsv with readCsv
+  * Fixing missing output and float stations tests
+  * Fixing bug using CSV file in station list
+  * Making options more consistent and adding WKT output option for residuals
+  * Adding untested function for rejecting observations
+  * Make setup_height options more consistent with application
+  * Updating SINEX obs reader to match Sinex change
+  * Fixing SinexObsFile for changes in Sinex module and adding debugging to snappy
+  * Adding option for additional data for station location, and reweighting by attributes
+  * Adding JSON stats output file
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Tue, 15 Mar 2016 11:36:34 +1300
+
 python-linz-adjustment (2.1.1-1) trusty; urgency=medium
 
   * Fixing errors in StationLocator
