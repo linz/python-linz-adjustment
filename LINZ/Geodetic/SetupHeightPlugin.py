@@ -21,6 +21,7 @@ class SetupHeightPlugin( Plugin ):
         
     def pluginOptions(self):
         self.setupHeights={}
+        self.setupFuncs=None
         return dict(
             calculateSetupHeights=False,
             calculateSetupAttributes=['inst_setup','trgt_setup'],
@@ -94,6 +95,8 @@ class SetupHeightPlugin( Plugin ):
 
     def setupParameters( self ):
         if not self.options.calculateSetupHeights:
+            return
+        if self.setupFuncs is None:
             return
         setupFuncs = self.setupFuncs
         oldsetups=self.setupHeights
