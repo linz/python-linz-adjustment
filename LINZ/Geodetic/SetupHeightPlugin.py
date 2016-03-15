@@ -94,9 +94,7 @@ class SetupHeightPlugin( Plugin ):
         return True
 
     def setupParameters( self ):
-        if not self.options.calculateSetupHeights:
-            return
-        if self.setupFuncs is None:
+        if not self.options.calculateSetupHeights or self.setupFuncs is None:
             return
         setupFuncs = self.setupFuncs
         oldsetups=self.setupHeights
@@ -176,6 +174,8 @@ class SetupHeightPlugin( Plugin ):
             self.adjustment.addParameterUpdate( self.updateSetupParams )
 
     def sumNormalEquations( self ):
+        if not self.options.calculateSetupHeights or self.setupFuncs is None:
+            return
         for height in self.setupHeights.values():
             if height['paramno'] >= 0 and height['error'] is not None:
                 obseqn=ObsEqn(1,self.adjustment.nparam)
@@ -185,6 +185,9 @@ class SetupHeightPlugin( Plugin ):
                 self.adjustment.sumObservation(obseqn)
 
     def updateSetupParams( self, paramValues ):
+        
+        if not self.options.calculateSetupHeights or self.setupFuncs is None:
+            return
         maxoffset=0.0
         for sev in self.setupHeights.values():
             paramno=sev['paramno']
@@ -197,6 +200,8 @@ class SetupHeightPlugin( Plugin ):
         return maxoffset < self.options.convergenceTolerance
 
     def calcStationOffsets( self, obs ):
+        if not self.options.calculateSetupHeights or self.setupFuncs is None:
+            return
         offsets=[]
         havesetups=False
         setupFuncs=self.setupFuncs
@@ -215,6 +220,8 @@ class SetupHeightPlugin( Plugin ):
         return offsets if havesetups else None
 
     def report( self ):
+        if not self.options.calculateSetupHeights or self.setupFuncs is None:
+            return
         if len(self.setupHeights) == 0:
             return
         write=self.adjustment.write
