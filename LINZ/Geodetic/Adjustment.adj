@@ -1,13 +1,16 @@
 # ========================================================
 # Standard adjustment parameters
 #
+# Option to ignore unrecognized commands in configuration
+# ignore_unknown_config_command
+#
 # Input/output files
 
 listing_file WARK2015LT.lst
 
 # Coordinate input file (not required if can calculate all stations)
 
-#coordinate_file network-stn.csv
+coordinate_file network.csv
 
 # Data files.  Can be SNX, msr (dynanet format), csv. By default CSV. 
 # See CsvObsFile.py for specification of CSV format.
@@ -24,10 +27,9 @@ listing_file WARK2015LT.lst
 # additional observation attributes from CSV columns using 
 #    attributes=col1+col2
 
-data_file 50243_30M_VLBI_2015-072.msr
-data_file 50243_7377_2015-072.msr
-data_file 50243_WARK_2015-072.msr
-data_file APS150750.SNX
+data_file totalstation.csv attributes=equipment+targetid
+data_file reduced.msr
+data_file BASELINES.SNX
 
 # Optional output files
 # 

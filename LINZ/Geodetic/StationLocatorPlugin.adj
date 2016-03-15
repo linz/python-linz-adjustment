@@ -6,6 +6,7 @@ use_plugin station_locator_plugin
 # calculate_missing_stations yes
 
 # Add additional observations purely for station location
+# (eg dummy observations)
 #
 # station_locator_data_file filename
 

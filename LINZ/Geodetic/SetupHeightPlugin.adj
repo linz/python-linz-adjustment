@@ -1,6 +1,6 @@
 #=====================================================================
 #  Calulate equipment setup height plugin.  Note that the setup height
-#  is applied in addition tot the instrument and target height from the
+#  is applied in addition to the instrument and target height from the
 #  observation data.
 
 use_plugin setup_height_plugin
