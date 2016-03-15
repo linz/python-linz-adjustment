@@ -1675,14 +1675,15 @@ class Adjustment( object ):
         if len(missing) > 0:
             if options.ignoreMissingStations:
                 self.write("Ignoring missing stations:\n")
-                for use,stn in missing:
-                    self.write("  {0}\n".format(stn))
+            else:
+                self.write("Coordinates not available for stations:\n")
+            for use,stn in missing:
+                self.write("  {0}\n".format(stn))
+            if options.ignoreMissingStations:
                 self.filterObsByStation(missing)
             else:
-                message=("Coordinates not available for stations:\n    "+
-                         "\n    ".join((s for u,s in missing)))
-                self.write(message)
-                raise MissingStationError(message)
+                raise MissingStationError("Coordinates not available for {0} stations\n"
+                                          .format(len(missing)))
 
     def calculateSolution( self ):
         options=self.options
