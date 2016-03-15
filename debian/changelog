@@ -1,3 +1,14 @@
+python-linz-adjustment (2.3.0-1) trusty; urgency=medium
+
+  * Adding handling of undefined setup height functions
+  * Fixing error handling of missing stations
+  * Fixing setup height calculation if no setups defined
+  * Fixing regressions
+  * Improving error message
+  * Improving example configuration files
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Wed, 16 Mar 2016 07:23:16 +1300
+
 python-linz-adjustment (2.2.0-1) trusty; urgency=medium
 
   * Option to use more than one station file
