@@ -26,6 +26,7 @@ Module to adjust network coordinates.
 
 class ConvergenceError( RuntimeError ): pass
 class SingularityError( RuntimeError ): pass
+class MissingStationError( RuntimeError ): pass
 
 # Options controlling an adjustment
 
@@ -401,6 +402,9 @@ class Adjustment( object ):
             debugStationOffsets=False,
             debugObservationEquations=False,
             debugFloatStations=False,
+
+            # Ignore unrecognized config
+            ignoreUnknownConfig=False,
             )
 
     def splitConfigValue( self, value ):
@@ -562,7 +566,9 @@ class Adjustment( object ):
             self.options.debugStationOffsets=Options.boolOption(value)
         elif item == 'debug_float_stations':
             self.options.debugFloatStations=Options.boolOption(value)
-        else:
+        elif item == 'ignore_unknown_config_item':
+            self.options.ignoreUnknownConfig=Options.boolOption(value)
+        elif not self.options.ignoreUnknownConfig:
             raise RuntimeError('Unrecognized configuration item: '+item+': '+value)
 
     def setConfig( self, item, value ):
@@ -1662,18 +1668,21 @@ class Adjustment( object ):
     def setup( self ):
         pass
 
-    def ignoreMissingStations( self ):
+    def handleMissingStations( self ):
         # Deal with missing stations
         options=self.options
+        missing=self.missingStationList()
         if options.ignoreMissingStations:
-            missing=self.missingStationList()
             if len(missing) > 0:
                 self.write("Ignoring missing stations:\n")
                 for use,stn in missing:
                     self.write("  {0}\n".format(stn))
                 self.filterObsByStation(missing)
-        if options.acceptStations:
-            self.filterObsByStation(options.acceptStations)
+        else:
+            message=("Coordinates not available for stations:\n    "+
+                     "\n    ".join((s for u,s in missing)))
+            self.write(message)
+            raise MissingStationError(message)
 
     def calculateSolution( self ):
         options=self.options
@@ -1703,7 +1712,7 @@ class Adjustment( object ):
         if self.options.verbose:
             self.writeObservationSummary()
         self.runPluginFunction('setup',runPrePostFunctions=True)
-        self.ignoreMissingStations()
+        self.handleMissingStations()
         self.setupNormalEquations()
 
     def runCalculateSolution(self):
@@ -1774,7 +1783,11 @@ class Adjustment( object ):
         # Set up and run the adjustment
 
         adj=Adjustment(plugins=plugins,config_file=args.config_file,output_file=args.output_file,verbose=args.verbose)
-        adj.run()
+        try:
+            adj.run()
+        except Exception as ex:
+            print("\nError running adjustment:",ex.message)
+            
 
 if __name__=="__main__":
     Adjustment.main()
