@@ -93,7 +93,12 @@ stats_json_file stats.json
 
 # Observations can be rejected (ie removed) or reweighted based
 # on criteria of instrument station, target station, or observation type
-# or an attribute.  Also can specify != instead of =
+# or an attribute.  
+#
+# Observations can also have their station codes recoded based on 
+# regular expressions and criteria
+#
+# Criteria can include any of
 #
 #    inststn=code
 #    inststn=re:codere
@@ -113,6 +118,16 @@ stats_json_file stats.json
 #
 # The modifications are applied immediately after the observations have been
 # read.
+# Station recoding is done before any other factors are applied.
+# Recoding uses the format
+#
+# recode from to [criteria]
+#
+# From can either be an explicit station code or re: followed by 
+# a regular expression.  If a regular expression then then capture
+# groups can be referenced in the to station, eg
+#
+# recode re:AB(\d+) CD\1 type=HA
 
 # Refraction correction (applied only to zenith distance obs)
 

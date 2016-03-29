@@ -343,6 +343,44 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         adj.setConfig('reweight_observations','3 trgtstn=re:ST[34] type=HA')
         self.runAdjustment('Test 71',adj,outputfiles={'obs':cfname})
 
+    def test_075_recode_obs( self ):
+        '''
+        Recode observation
+        '''
+        st1=Station.Station('ST1',llh=(171.0,-45.0,10.0))
+        st2=Station.Station('ST2',llh=(171.0,-45.001,20.0))
+        st3=Station.Station('ST3',llh=(171.001,-45.0,15.0))
+        st4=Station.Station('ST4',llh=(171.001,-45.001,80.0))
+        st1r=Station.Station('AB1',llh=(171.0,-45.0,10.0))
+        st2r=Station.Station('AB2',llh=(171.0,-45.001,20.0))
+        st3r=Station.Station('SX3',llh=(171.001,-45.0,15.0))
+        st4r=Station.Station('SX4',llh=(171.001,-45.001,80.0))
+        st5r=Station.Station('AB3',llh=(171.0,-45.0,10.0))
+        obs=[]
+        obs.append(SD(st1,st2))
+        obs.append(SD(st1,st3))
+        obs.append(SD(st2,st3))
+        obs.append(SD(st2,st1))
+        obs.append(SD(st2,st4))
+        obs.append(SD(st3,st4))
+        obs.append(HA(st3,[st1,st2,st4]))
+        obs.append(HA(st4,[st1,st2]))
+        net=Network.Network()
+        net.addStation(st1r)
+        net.addStation(st2r)
+        net.addStation(st3r)
+        net.addStation(st4r)
+        net.addStation(st5r)
+
+        adj=Adjustment.Adjustment(stations=net,observations=obs,verbose=True)
+        adj.setConfig('fix','*')
+        cfname=self.outputFilePath('test75_residuals.csv')
+        adj.setConfig('residual_csv_file',cfname)
+        adj.setConfig('recode_observations','ST1 AB3 inststn=ST1 trgtstn=ST3')
+        adj.setConfig('recode_observations',r're:ST([12]) AB\1')
+        adj.setConfig('recode_observations',r're:ST([34]) SX\1')
+        self.runAdjustment('Test 75',adj,outputfiles={'obs':cfname})
+
     def test_100_locator_plugin( self ):
         '''
         Station locator plugin

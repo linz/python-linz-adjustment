@@ -386,6 +386,7 @@ class Adjustment( object ):
 
             # ObservationOptions
             reweightObservations=[],
+            recodeObservations=[],
             rejectObservations=[],
 
             # Adjustment options
@@ -433,6 +434,12 @@ class Adjustment( object ):
                     yield s.code()
             else:
                 yield s
+
+    def _recodeObsFunc( self, rfrom, rto, regex ):
+        if regex:
+            pattern=re.compile(rfrom)
+            return lambda x: pattern.sub(rto,x)
+        return lambda x: rto if x == rfrom else x
 
     def setConfigOption( self, item, value ):
         item=item.lower()
@@ -527,6 +534,17 @@ class Adjustment( object ):
             factor=float(match.group(1))
             criteria=self._matchObsFunc(match.group(2))
             self.options.reweightObservations.append((criteria,factor))
+        elif item == 'recode_observations':
+            match=re.match(r'(re\:)?(\S+)\s+(\S+)(?:\s+(\S.*?))?\s*$',value)
+            if not match:
+                raise RuntimeError('Invalid recode_observations option: '+value)
+            repfunc=self._recodeObsFunc(match.group(2),match.group(3),match.group(1)=='re:')
+            condition=match.group(4)
+            if condition:
+                criteria=self._matchObsFunc(condition)
+            else:
+                criteria=lambda o, ov: True
+            self.options.recodeObservations.append((criteria,repfunc))
         elif item == 'reject_observations':
             if value == '':
                 raise RuntimeError('Missing reject_observations criteria')
@@ -675,6 +693,8 @@ class Adjustment( object ):
             obsiterator=self.observationSourceIterator( filename, **attributes )
             self.observations.extend(obsiterator)
 
+        if self.options.recodeObservations:
+            self.recodeObs()
         if self.options.acceptStations:
             self.filterObsByStation(self.options.acceptStations)
         if self.options.rejectObservations:
@@ -815,6 +835,21 @@ class Adjustment( object ):
             for f in funcs: status=f(code,status)
             return status
         return usestation
+
+    def recodeObs( self ):
+        '''
+        Apply the observation station coordinate recoding options
+        Recoding is applied sequentially to observations.
+        '''
+        recodes=self.options.recodeObservations
+        for obs in self.observations:
+            for o in obs.obsvalues:
+                for criteria,update in recodes:
+                    if criteria(obs,o):
+                        if o.inststn is not None:
+                            o.inststn=update(o.inststn)
+                        if o.trgtstn is not None:
+                            o.trgtstn=update(o.trgtstn)
 
     def filterObsByStation( self, uselist ):
         '''
