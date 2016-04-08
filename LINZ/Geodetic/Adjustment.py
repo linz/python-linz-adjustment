@@ -1822,7 +1822,8 @@ class Adjustment( object ):
         try:
             adj.run()
         except Exception as ex:
-            print("\nError running adjustment:",ex.message)
+            errmess=ex.message or str(ex) or repr(ex)
+            print("\nError running adjustment:\n"+errmess)
             
 
 if __name__=="__main__":
