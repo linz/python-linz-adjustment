@@ -1,3 +1,11 @@
+python-linz-adjustment (2.4.0-1) trusty; urgency=medium
+
+  * Adding recode stations option
+  * Ensuring some indication of error is printed
+  * Enhancing handling of dates
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Mon, 11 Apr 2016 12:07:09 +1200
+
 python-linz-adjustment (2.3.0-1) trusty; urgency=medium
 
   * Adding handling of undefined setup height functions
