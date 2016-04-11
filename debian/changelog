@@ -1,3 +1,9 @@
+python-linz-adjustment (2.4.1-1) trusty; urgency=medium
+
+  * Fixing reading of dates in CSV observations
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Tue, 12 Apr 2016 10:21:45 +1200
+
 python-linz-adjustment (2.4.0-1) trusty; urgency=medium
 
   * Adding recode stations option
