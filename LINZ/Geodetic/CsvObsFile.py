@@ -12,6 +12,20 @@ from .Observation import Observation, ObservationValue
 
 approxEarthRadius=6371000.0
 
+def _parsedate( datestr ):
+    if not datestr:
+        return None
+    parts=[int(i) for i in re.findall(r'(\d+)',datestr)]
+    try:
+        if len(parts) not in (3,5,6):
+            raise RuntimeError()
+        parts.extend((0,0,0))
+        obsdate=dt.datetime(parts[0],parts[1],parts[2],parts[3],parts[4],parts[5])
+    except:
+        raise RuntimeError('Invalid date '+datestr)
+    return obsdate
+
+
 def read( csvfile, colnames=None, attributes=None ):
     '''
     Reads observations from a data file.  The data file can have columns:
@@ -109,9 +123,8 @@ def read( csvfile, colnames=None, attributes=None ):
         for k,f in attfuncs.iteritems():
             attributes[k]=f(row)
 
-        obsdate=None
-        if row.date is not None:
-            obsdate=dt.datetime.strptime(row.date,"%Y-%m-%d")
+
+        obsdate=_parsedate(row.date)
 
         for f in valuefuncs:
             obstype,obsvalue,obserror=f(row)
