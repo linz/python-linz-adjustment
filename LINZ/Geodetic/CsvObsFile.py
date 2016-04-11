@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import re
 import math
+import datetime as dt
 from .CsvRecord import Reader
 from .Observation import Observation, ObservationValue
 
@@ -108,6 +109,10 @@ def read( csvfile, colnames=None, attributes=None ):
         for k,f in attfuncs.iteritems():
             attributes[k]=f(row)
 
+        obsdate=None
+        if row.date is not None:
+            obsdate=dt.datetime.strptime(row.date,"%Y-%m-%d")
+
         for f in valuefuncs:
             obstype,obsvalue,obserror=f(row)
             if obsvalue is None:
@@ -117,10 +122,10 @@ def read( csvfile, colnames=None, attributes=None ):
                                   attributes)
             if obstype == 'HA':
                 if haobs is None:
-                    haobs=Observation('HA')
+                    haobs=Observation('HA',obsdate=obsdate)
                 haobs.addObservation(value)
             else:
-                yield Observation(obstype).addObservation(value)
+                yield Observation(obstype,obsdate=obsdate).addObservation(value)
                 continue
 
     if haobs is not None:

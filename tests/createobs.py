@@ -10,8 +10,8 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 from Geodetic.Observation import Observation as Obs, ObservationValue as ObsVal
 
-def HA( stfrom, targets, offset=0.0, error=0.001, insthgt=0.0, trgthgt=0.0 ):
-    ha=Obs('HA')
+def HA( stfrom, targets, offset=0.0, error=0.001, insthgt=0.0, trgthgt=0.0, obsdate=None ):
+    ha=Obs('HA',obsdate=obsdate)
     refha=None
     for stto in targets:
         angle=stfrom.azimuthTo(stto,instofst=insthgt,trgtofst=trgthgt)
@@ -23,35 +23,35 @@ def HA( stfrom, targets, offset=0.0, error=0.001, insthgt=0.0, trgthgt=0.0 ):
         ha.addObservation(ObsVal(stfrom.code(),stto.code(),angle,error,insthgt=insthgt,trgthgt=trgthgt))
     return ha
 
-def AZ(stfrom,stto,error=0.001,insthgt=0.0,trgthgt=0.0):
+def AZ(stfrom,stto,error=0.001,insthgt=0.0,trgthgt=0.0,obsdate=None):
     angle=stfrom.azimuthTo(stto,instofst=insthgt,trgtofst=trgthgt)
-    return Obs('AZ',obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error,insthgt=insthgt,trgthgt=trgthgt))
+    return Obs('AZ',obsdate=obsdate,obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error,insthgt=insthgt,trgthgt=trgthgt))
 
-def SD(stfrom,stto,error=0.001,insthgt=0.0,trgthgt=0.0):
+def SD(stfrom,stto,error=0.001,insthgt=0.0,trgthgt=0.0,obsdate=None):
     angle=stfrom.distanceTo(stto,instofst=insthgt,trgtofst=trgthgt)
-    return Obs('SD',obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error,insthgt=insthgt,trgthgt=trgthgt))
+    return Obs('SD',obsdate=obsdate,obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error,insthgt=insthgt,trgthgt=trgthgt))
 
-def ZD(stfrom,stto,error=0.001,insthgt=0.0,trgthgt=0.0,refcoef=0.0):
+def ZD(stfrom,stto,error=0.001,insthgt=0.0,trgthgt=0.0,refcoef=0.0,obsdate=None):
     angle=stfrom.zenithDistanceTo(stto,instofst=insthgt,trgtofst=trgthgt,refcoef=refcoef)
-    return Obs('ZD',obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error,insthgt=insthgt,trgthgt=trgthgt))
+    return Obs('ZD',obsdate=obsdate,obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error,insthgt=insthgt,trgthgt=trgthgt))
 
-def LV(stfrom,stto,error=0.001,insthgt=0.0,trgthgt=0.0):
+def LV(stfrom,stto,error=0.001,insthgt=0.0,trgthgt=0.0,obsdate=None):
     angle=stfrom.heightDifferenceTo(stto,instofst=insthgt,trgtofst=trgthgt)
-    return Obs('LV',obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error,insthgt=insthgt,trgthgt=trgthgt))
+    return Obs('LV',obsdate=obsdate,obsvalue=ObsVal(stfrom.code(),stto.code(),angle,error,insthgt=insthgt,trgthgt=trgthgt))
 
-def GB(stfrom,stto,error=0.001,insthgt=0.0,trgthgt=0.0):
+def GB(stfrom,stto,error=0.001,insthgt=0.0,trgthgt=0.0,obsdate=None):
     xyz0=stfrom.xyz(offset=insthgt)
     xyz2=stto.xyz(offset=trgthgt)
     dxyz=xyz2-xyz0
     covar=np.identity(3)*error*error
-    obs=Obs('GB',obsvalue=ObsVal(stfrom.code(),stto.code(),value=dxyz,insthgt=insthgt,trgthgt=trgthgt))
+    obs=Obs('GB',obsdate=obsdate,obsvalue=ObsVal(stfrom.code(),stto.code(),value=dxyz,insthgt=insthgt,trgthgt=trgthgt))
     obs.setCovariance(covar)
     return obs
 
-def GX(stfrom,error=0.001,insthgt=0.0,trgthgt=0.0):
+def GX(stfrom,error=0.001,insthgt=0.0,trgthgt=0.0,obsdate=None):
     xyz=stfrom.xyz(offset=insthgt)
     covar=np.identity(3)*error*error
-    obs=Obs('GX',obsvalue=ObsVal(stfrom.code(),value=xyz,insthgt=insthgt))
+    obs=Obs('GX',obsdate=obsdate,obsvalue=ObsVal(stfrom.code(),value=xyz,insthgt=insthgt))
     obs.setCovariance(covar)
     return obs
 

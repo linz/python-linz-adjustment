@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import sys
 import numpy as np
+import datetime as dt
 import os.path
 import StringIO
 from LINZ import fileunittest
@@ -290,9 +291,9 @@ class AdjustmentTestCase( fileunittest.TestCase ):
         st3=Station.Station('ST3',llh=(171.001,-45.0,15.0))
         st4=Station.Station('ST4',llh=(171.001,-45.001,80.0))
         obs=[]
-        obs.append(SD(st1,st2))
+        obs.append(SD(st1,st2,obsdate=dt.datetime(2015,2,3,14,28,20)))
         obs.append(SD(st1,st3))
-        obs.append(SD(st2,st3))
+        obs.append(SD(st2,st3,obsdate=dt.datetime(2007,4,1,8,58,23)))
         obs.append(SD(st2,st1))
         obs.append(SD(st2,st4))
         obs.append(SD(st3,st4))

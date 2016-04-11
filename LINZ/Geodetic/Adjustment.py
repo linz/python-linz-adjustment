@@ -1548,12 +1548,17 @@ class Adjustment( object ):
 
         with open(csvfile,"wb") as csvf:
             csvw=csv.writer(csvf)
-            cols=['fromstn','tostn','fromhgt','tohgt','obstype','obsset','value','error','calcval','residual','reserr','stdres']
+            cols=['fromstn','tostn','fromhgt','tohgt','obstype','obsset','obsdate',
+                  'value','error','calcval','residual','reserr','stdres']
             cols.extend(attributes)
             if wkt:
                 cols.append('wkt')
             csvw.writerow(cols)
             lastset=0
+            vformat="{0:.6f}"
+            eformat="{0:.6f}"
+            seformat="{0:.4f}"
+
             for obs,res,rescvr in self.residuals():
                 if obs.obstype.nvalue > 1:
                     continue
@@ -1561,9 +1566,8 @@ class Adjustment( object ):
                 if len(obs.obsvalues) > 0:
                     lastset += 1
                     set=lastset
-                vformat="{0:.6f}"
-                eformat="{0:.6f}"
-                seformat="{0:.4f}"
+                obsdate=obs.obsdate.strftime("%Y-%m-%d %H:%M:%S") if obs.obsdate is not None else "" 
+
                 for obsv,resv,rescvr in zip(obs.obsvalues,res.flatten(),rescvr.diagonal().flatten()):
                     stderr=obsv.stderr
                     if rescvr >= stderr*stderr*1.0e-10:
@@ -1578,6 +1582,7 @@ class Adjustment( object ):
                         obsv.trgthgt,
                         obs.obstype.code,
                         set,
+                        obsdate,
                         vformat.format(obsv.value),
                         eformat.format(stderr),
                         vformat.format(obsv.value-resv),
