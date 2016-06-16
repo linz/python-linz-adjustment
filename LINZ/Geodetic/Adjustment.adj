@@ -121,13 +121,13 @@ stats_json_file stats.json
 # Station recoding is done before any other factors are applied.
 # Recoding uses the format
 #
-# recode from to [criteria]
+# recode_observations from to [criteria]
 #
 # From can either be an explicit station code or re: followed by 
 # a regular expression.  If a regular expression then then capture
 # groups can be referenced in the to station, eg
 #
-# recode re:AB(\d+) CD\1 type=HA
+# recode_observations re:AB(\d+) CD\1 type=HA
 
 # Refraction correction (applied only to zenith distance obs)
 
