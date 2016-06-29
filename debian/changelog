@@ -1,3 +1,12 @@
+python-linz-adjustment (2.5.0-1) trusty; urgency=medium
+
+  * Fixing error in example configuration script
+  * Adding option for writing SINEX file
+  * Fixing to only use one version of writeSinex - really needs tidying up
+  * Adding SINEX output
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Thu, 30 Jun 2016 11:45:45 +1200
+
 python-linz-adjustment (2.4.1-1) trusty; urgency=medium
 
   * Fixing reading of dates in CSV observations
