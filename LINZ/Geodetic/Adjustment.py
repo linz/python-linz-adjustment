@@ -186,7 +186,7 @@ class Adjustment( object ):
 
     '''
 
-    softwareName='snappy network adjustment version 1.0: Land Information New Zealand'
+    softwareName='snappy network adjustment: Land Information New Zealand'
 
     def __init__( self, 
                  stations=Network(), 
@@ -1629,8 +1629,8 @@ class Adjustment( object ):
                     csvw.writerow(data)
 
     def writeSinex( self ):
-        if not self.options.sinexOutputFile:
-            return
+        if self.options.adjustENU:
+            raise RuntimeError("Cannot write SINEX file for ENU adjustment")
         sinexIds=self.options.sinexIds
         marks=sorted(sinexIds.keys())
         if len(marks) == 0:
@@ -1771,7 +1771,8 @@ class Adjustment( object ):
             self.stations.writeCsv(self.options.outputStationFile,
                                    geodetic=self.options.outputStationFileGeodetic,
                                    extradata=self._getExtraStationDataFunc())
-        self.runPluginFunction('writeSinex',reverse=True,firstOnly=True)
+        if self.options.sinexOutputFile:
+            self.writeSinex()
 
 
     def setup( self ):
@@ -1840,7 +1841,7 @@ class Adjustment( object ):
             self.runOutputs()
 
     @staticmethod
-    def main(plugins=None):
+    def main(plugins=None,software=None):
         '''
         Main function to run the adjustment
 
@@ -1866,6 +1867,8 @@ class Adjustment( object ):
             import pdb
             pdb.set_trace()
         plugins=plugins or []
+        if software is not None:
+            Adjustment.softwareName=software
         if args.create:
             if os.path.exists(args.config_file):
                 print("Config file "+args.config_file+" already exists - not creating!")
