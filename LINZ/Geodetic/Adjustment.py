@@ -145,10 +145,11 @@ class Adjustment( object ):
         postSetupParameters
         sumNormalEquations
         updateObservationEquation
+        writeSinex
 
     The order in which plugins are loaded is defines the order in which the plugin hooks will be run.
     The Adjustment class itself is the first plugin loaded.  Those functions marked with ! are run in
-    reverse order of loading.
+    reverse order of loading. (writeSinex added to support pyaxis)
     
     The parameters in the plugin function will be the same as
     for the corresponding Adjustment function.  
@@ -184,6 +185,8 @@ class Adjustment( object ):
                 ....
 
     '''
+
+    softwareName='snappy network adjustment version 1.0: Land Information New Zealand'
 
     def __init__( self, 
                  stations=Network(), 
@@ -404,6 +407,11 @@ class Adjustment( object ):
             debugObservationEquations=False,
             debugFloatStations=False,
 
+            # Sinex output options
+            sinexIds={},
+            sinexHeaders={},
+            sinexOutputFile=None,
+
             # Ignore unrecognized config
             ignoreUnknownConfig=False,
             )
@@ -496,6 +504,19 @@ class Adjustment( object ):
                 else:
                     raise RuntimeError("Invalid data_file attribute "+p)
             self.options.outputResidualFileOptions=options
+        elif item == 'sinex_output_file':
+            self.options.sinexOutputFile=value
+        elif item == 'sinex_site_id':
+            parts=value.split(None,4)
+            if len(parts) != 5:
+                raise RuntimeError('Invalid sinex_site_id: '+value)
+            mark,id,code,monument,description=parts
+            self.options.sinexIds[mark]={'id':id,'code':code,'monument':monument,'description':description}
+        elif item == 'sinex_header_info':
+            parts=value.split(None,1)
+            if len(parts) != 2:
+                raise RuntimeError('Invalid sinex_header_info: '+value)
+            self.options.sinexHeaders[parts[0].upper()]=parts[1]
         # Station selection
         elif item == 'fix':
             self.options.fixedStations.extend(((True,v) for v in self._splitStationList(value)))
@@ -1606,6 +1627,53 @@ class Adjustment( object ):
                             obswkt=None
                         data.append(obswkt)
                     csvw.writerow(data)
+
+    def writeSinex( self ):
+        if not self.options.sinexOutputFile:
+            return
+        sinexIds=self.options.sinexIds
+        marks=sorted(sinexIds.keys())
+        if len(marks) == 0:
+            return
+        coords=[]
+        mapping=self.coordParamMapping
+        for m in marks:
+            if m in mapping:
+                prms,obseq,update=mapping[m]
+                if obseq.shape != (3,3) or np.any(obseq != np.identity(3)):
+                    raise RuntimeError("Sinex mark "+m+" XYZ coordinates are not adjustment parameters")
+                xyz=self.stations.get(m).xyz()
+                coords.append((xyz,list(prms)))
+            else:
+                raise RuntimeError("Sinex mark "+m+" is not defined in the adjustment")
+
+        startdate=None
+        enddate=None
+        for o in self.observations:
+            if o.obsdate is not None:
+                if startdate is None:
+                    startdate=o.obsdate
+                    enddate=o.obsdate
+                elif startdate > o.obsdate:
+                    startdate=o.obsdate
+                elif enddate < o.obsdate:
+                    enddate=o.obsdate
+        
+        from LINZ.Geodetic import Sinex
+        with Sinex.Writer( self.options.sinexOutputFile ) as snx:
+            snx.addFileInfo(software=self.softwareName)
+            snx.addFileInfo( **self.options.sinexHeaders )
+            if startdate is not None:
+                snx.setObsDateRange(startdate,enddate)
+            snx.setSolutionStatistics(self.seu**2,self.ssr,self.nobs,self.nparam)
+
+            for m,c in zip(marks,coords):
+                snxid=sinexIds[m]
+                snx.addMark(m,**snxid)
+                snx.addSolution(m,c[0],c[1])
+
+            snx.setCovariance( self.covariance(), self.seu**2 )
+
         
     def _getExtraStationDataFunc( self ):
         writeCovar=self.options.outputStationCovariances
@@ -1703,6 +1771,7 @@ class Adjustment( object ):
             self.stations.writeCsv(self.options.outputStationFile,
                                    geodetic=self.options.outputStationFileGeodetic,
                                    extradata=self._getExtraStationDataFunc())
+        self.runPluginFunction('writeSinex')
 
 
     def setup( self ):
