@@ -1771,7 +1771,7 @@ class Adjustment( object ):
             self.stations.writeCsv(self.options.outputStationFile,
                                    geodetic=self.options.outputStationFileGeodetic,
                                    extradata=self._getExtraStationDataFunc())
-        self.runPluginFunction('writeSinex')
+        self.runPluginFunction('writeSinex',reverse=True,firstOnly=True)
 
 
     def setup( self ):
