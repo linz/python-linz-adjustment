@@ -1511,6 +1511,13 @@ class Adjustment( object ):
         The summary is returned as a dictionary based on key, for which 
         each item is a tuple (ssr,nvalue).  SSR is the sum of squared 
         standardised residuals, nvalue is the number of values summed.
+
+        NOTE: The selection of residuals to sum include tolerances
+        for computing rank of covariance matrices or observations with 
+        insignificant redundancy.  
+
+        This may result in changes in numbers of observations if 
+        they are reweighted in adjustments.
         '''
         if keyfunc is None:
             keyfunc=lambda obs: obs.obstype.code
