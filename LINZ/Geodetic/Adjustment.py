@@ -255,13 +255,16 @@ class Adjustment( object ):
         self.plugins.append(plugin)
         self.pluginFuncs={}
 
-    def addPluginClassByName( self, pluginClassName ):
+    @classmethod
+    def getPluginClassesByName( cls, pluginClassName ):
         # Two possible names for plugin module, one as entered and one
         # converted to mixed case.  To support consistency in configuration
         # file parameters using underscore separator.
 
+        pluginclasses=[]
         origname=pluginClassName
         altname=re.sub(r'(?:_|^)(\w)',lambda m: m.group(1).upper(),pluginClassName)
+        altnamep=altname+'Plugin'
 
         # Try first for module in the path of the script
         path0=os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -276,7 +279,7 @@ class Adjustment( object ):
         module=None
 
         modnames=set()
-        for name in [origname,altname]:
+        for name in [altnamep,altname,origname]:
             oldpath=list(sys.path)
             try:
                 sys.path[:]=[path0]
@@ -302,7 +305,6 @@ class Adjustment( object ):
                 sys.path[:]=oldpath
         if module is None:
             raise RuntimeError('Cannot load Adjustment plugin module '+name+'('+','.join(modnames)+')')
-        added=False
         for item in dir(module):
             if item.startswith('_'):
                 continue
@@ -313,10 +315,18 @@ class Adjustment( object ):
                 continue
             if value == Plugin:
                 continue
-            self.addPluginClass(value)
-            added=True
-        if not added:
-            raise RuntimeError('No Adjustment plugin found in module '+pluginClassName)
+            pluginclasses.append(value)
+
+        if len(pluginclasses) == 0:
+            if module is not None:
+                pluginfile=' ('+module.__file__+')'
+            raise RuntimeError('No Adjustment plugin found in module {0}{1}'
+                               .format(pluginClassName,pluginfile))
+        return pluginclasses
+
+    def addPluginClassByName( self, name ):
+        for pluginclass in Adjustment.getPluginClassesByName(name):
+            self.addPluginClass(pluginclass)
 
     def getPluginFunction( self, funcname, **options ):
         # Default options
@@ -620,6 +630,16 @@ class Adjustment( object ):
     def loadConfigFile( self, config_file, write=None ):
         cfg={}
         nerrors=0
+        (configdir,configname)=os.path.split(config_file)
+        configname=os.path.splitext(configname)[0]
+        configpath=os.path.join(configdir,configname)
+        if configdir != '':
+            configdir=configdir+'/'
+        vars={
+            'configpath': configpath,
+            'configname': configname,
+            'configdir':  configdir
+            }
         with open(config_file) as cfgf:
             for l in cfgf:
                 try:
@@ -632,6 +652,7 @@ class Adjustment( object ):
                         value=parts[1] if len(parts)==2 else 'y'
                     except:
                         raise RuntimeError("Invalid configuration line: ",l)
+                    value=re.sub(r'\$\{(\w+)\}',lambda m: vars.get(m.group(1),m.group(0)),value)
                     self.setConfig( item, value )
                 except Exception as ex:
                     if write is not None:
@@ -1863,6 +1884,7 @@ class Adjustment( object ):
         parser.add_argument('-s','--output-coordinate-file',help="Output station CSV file")
         parser.add_argument('-v','--verbose',action='store_true',help="Verbose output")
         parser.add_argument('-c','--create',action='store_true',help="Create an example adjustment configuration file")
+        parser.add_argument('-p','--plugin',help='Add adjustment plugins')
         parser.add_argument('-D','--debug',action='store_true',help="Enter the python debugger")
         args=parser.parse_args()
 
@@ -1874,6 +1896,10 @@ class Adjustment( object ):
             import pdb
             pdb.set_trace()
         plugins=plugins or []
+        if args.plugin:
+            for pluginname in re.split(r'\W+',args.plugin):
+                if pluginname != '':
+                    plugins.extend(Adjustment.getPluginClassesByName(pluginname))
         if software is not None:
             Adjustment.softwareName=software
         if args.create:

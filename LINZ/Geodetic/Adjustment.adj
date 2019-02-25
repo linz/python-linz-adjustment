@@ -4,9 +4,10 @@
 # Option to ignore unrecognized commands in configuration
 # ignore_unknown_config_command
 #
-# Input/output files
+# Input/output files (configuration options can include ${configpath}
+# in place of the directory/name of the configuration file.)
 
-listing_file WARK2015LT.lst
+listing_file ${configpath}.lst
 
 # Coordinate input file (not required if can calculate all stations)
 
@@ -42,7 +43,7 @@ data_file BASELINES.SNX
 # Attributes can include source, which defines the file and line the observation 
 # is read from (if supported by the data file reader)
 
-residual_csv_file wark2015lt-residuals.csv
+residual_csv_file ${configpath}-residuals.csv
 
 # Station coordinates.  Filename can be followed by options of
 #    geodetic     output coords as lat/lon/ell hgt
@@ -55,11 +56,11 @@ residual_csv_file wark2015lt-residuals.csv
 #
 #  eg output_coordinate_file newcoords.csv geodetic covariances
 
-output_coordinate_file coords.csv
+output_coordinate_file ${configpath} coords.csv
 
 # Statistics JSON file
 
-stats_json_file stats.json
+stats_json_file ${configpath}-stats.json
 
 # ========================================================
 # Station constraint options
