@@ -78,9 +78,6 @@ The first line of the file defines the names of each field in the file.  The exp
 As an alternative to specifying the observation type the CSV file can contain columns named by the data type, for example 
 ``ha_value,ha_error,sd_value,sd_error``.
 
-Any other fields in the CSV file are recorded as parameter attributes that can be passed through to the output file.
-
-Alternative column names and additional attribute values can be specified in the data_file command.
-
+Additional fields can be rehad from the data file can be read by adding attributes=fieldname1+fieldname2+... in the data_file command.  Some adjustment options can use these attribute values (for example in the setup_heights plugin).  They can also be output to the residuals CSV file, which may be useful for analysis of the adjustment results.
 
 
