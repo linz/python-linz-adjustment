@@ -1,3 +1,12 @@
+python-linz-adjustment (2.6.0-1) xenial; urgency=medium
+
+  * Updating documentation regarding residual summary
+  * Update README.rst
+  * Update README.rst
+  * Tidying up plugin handling and adding config... variables in config file
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Tue, 26 Feb 2019 09:26:04 +1300
+
 python-linz-adjustment (2.5.0-1) trusty; urgency=medium
 
   * Fixing error in example configuration script
