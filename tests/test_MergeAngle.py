@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 import sys
 import numpy as np
 import os.path
-from LINZ import fileunittest
+from LINZ.Geodetic.Test import fileunittest
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 from Geodetic import MergeAnglesPlugin

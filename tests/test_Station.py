@@ -8,7 +8,7 @@ import sys
 import os.path
 import numpy as np
 from numpy import array
-from LINZ import fileunittest
+from LINZ.Geodetic.Test import fileunittest
 
 sys.path.insert(0,os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
 from Geodetic import Station

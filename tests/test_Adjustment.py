@@ -10,7 +10,7 @@ import numpy as np
 import datetime as dt
 import os.path
 import StringIO
-from LINZ import fileunittest
+from LINZ.Geodetic.Test import fileunittest
 
 # Install path relative to LINZ to avoid potentially picking up installed modules...
 sys.path.insert(0,os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ'))
