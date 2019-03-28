@@ -1,3 +1,11 @@
+python-linz-adjustment (2.6.1-1) xenial; urgency=medium
+
+  * Update README.rst
+  * Updating location of fileunittest module
+  * Cleaning future warning
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Fri, 29 Mar 2019 08:38:59 +1300
+
 python-linz-adjustment (2.6.0-1) xenial; urgency=medium
 
   * Updating documentation regarding residual summary
