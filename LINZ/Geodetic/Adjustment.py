@@ -1433,7 +1433,7 @@ class Adjustment( object ):
             self.writeDebugOutput("  ObsRes: {0}\n".format((oe.obsres-offset)*factor))
             self.writeDebugOutput("  ObsEq:  {0}\n".format(oe.obseq*factor))
             self.writeDebugOutput("  ObsCvr: {0}\n".format(oe.obscovar*factor*factor))
-            if oe.schreiber != None:
+            if oe.schreiber is not None:
                 self.writeDebugOutput("  Schrb: {0}\n".format(oe.schreiber))
 
     def observationEquations( self ):
