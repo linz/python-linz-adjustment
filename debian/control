@@ -1,14 +1,21 @@
 Source: python-linz-adjustment
 Maintainer: Chris Crook <ccrook@linz.govt.nz>
 Section: python
-X-Python-Version: >= 2.6
+X-Python-Version: >= 3.5
 Priority: optional
-Build-Depends: python-setuptools (>= 0.6b3), python-all (>= 2.6.6-3), debhelper (>= 7.4.3)
+Build-Depends:
+  python3-all,
+  python3-setuptools,
+  debhelper (>= 9)
 Standards-Version: 3.9.1
 
-Package: python-linz-adjustment
+Package: python3-linz-adjustment
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}
+Depends: 
+  ${misc:Depends}, 
+  ${python3:Depends},
+  python3-numpy,
+  python3-scipy
 Description: Python LINZ adjustment
  Provides some base adjustment functions.
  .

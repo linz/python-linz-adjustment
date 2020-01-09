@@ -1,9 +1,4 @@
-#!/usr/bin/python
-# Imports to support python 3 compatibility
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+#!/usr/bin/python3
 
 import sys
 import math
@@ -18,94 +13,106 @@ from .Network import Network
 from .Station import Station
 from .Observation import Observation, ObservationValue
 
-'''
+"""
 Module to adjust network coordinates.  
-'''
+"""
 
 # Error classes used by the adjustment
 
-class ConvergenceError( RuntimeError ): pass
-class SingularityError( RuntimeError ): pass
-class MissingStationError( RuntimeError ): pass
+
+class ConvergenceError(RuntimeError):
+    pass
+
+
+class SingularityError(RuntimeError):
+    pass
+
+
+class MissingStationError(RuntimeError):
+    pass
+
 
 # Options controlling an adjustment
 
-class Options( object  ):
-    '''
+
+class Options(object):
+    """
     Class to define the options used in an adjustment.
 
-    '''
+    """
+
     @staticmethod
     def boolOption(value):
-        return 'yes'.startswith(value.lower()) or 'true'.startswith(value.lower())
+        return "yes".startswith(value.lower()) or "true".startswith(value.lower())
 
-    def __init__(self,config_file=None):
-        self.__dict__['_values']={}
+    def __init__(self, config_file=None):
+        self.__dict__["_values"] = {}
 
-    def __getattr__( self, name ):
-        if not name.startswith('_') and name in self._values:
-            return self.__dict__['_values'][name]
+    def __getattr__(self, name):
+        if not name.startswith("_") and name in self._values:
+            return self.__dict__["_values"][name]
         raise KeyError(name)
 
-    def __setattr__( self, name, value ):
+    def __setattr__(self, name, value):
         if name.startswith("_"):
             raise KeyError(name)
         if name in self._values:
-            self._values[name]=value
+            self._values[name] = value
 
-    def set( self, name, value ):
-        self.__setattr__(name,value)
+    def set(self, name, value):
+        self.__setattr__(name, value)
 
-    def setupOptions( self, **options ):
-        '''
+    def setupOptions(self, **options):
+        """
         Adds option and default values to the options array
-        '''
+        """
         self._values.update(options)
 
-    def update( self, options, addoptions=False ):
-        '''
+    def update(self, options, addoptions=False):
+        """
         Update options from options list, but only if the option is already defined.
-        '''
-        if isinstance (options,Options):
-            options=options.values
-        for k,v in options.iteritems():
+        """
+        if isinstance(options, Options):
+            options = options.values
+        for k, v in options.items():
             if k in self._values or addoptions:
-                self._values[k]=v
+                self._values[k] = v
             else:
                 raise KeyError(k)
 
-class ObsEqn( object ):
 
-    def __init__( self, nrow, nparam, diagonalCovar=True, haveSchreiber=False ):
-        self.obseq=np.zeros((nrow,nparam))
-        self.obsres=np.zeros((nrow,1))
-        self.obscovar=np.zeros((nrow,1)) if diagonalCovar else np.zeros((nrow,nrow))
-        self.diagonal=diagonalCovar
-        self.schreiber=np.ones((nrow,1)) if haveSchreiber else None
+class ObsEqn(object):
+    def __init__(self, nrow, nparam, diagonalCovar=True, haveSchreiber=False):
+        self.obseq = np.zeros((nrow, nparam))
+        self.obsres = np.zeros((nrow, 1))
+        self.obscovar = np.zeros((nrow, 1)) if diagonalCovar else np.zeros((nrow, nrow))
+        self.diagonal = diagonalCovar
+        self.schreiber = np.ones((nrow, 1)) if haveSchreiber else None
 
-    def setCovar( self, obscovar ):
-        self.obscovar=np.array(obscovar)
-        self.diagonal=obscovar.shape[1] == 1
+    def setCovar(self, obscovar):
+        self.obscovar = np.array(obscovar)
+        self.diagonal = obscovar.shape[1] == 1
 
-    def setSchreiber( self, schreiber ):
-        self.schreiber=None if schreiber is None else np.array(schreiber)
+    def setSchreiber(self, schreiber):
+        self.schreiber = None if schreiber is None else np.array(schreiber)
 
-class Plugin( object ):
 
-    def __init__( self, adjustment ):
-        self.adjustment=adjustment
-        self.options=adjustment.options
+class Plugin(object):
+    def __init__(self, adjustment):
+        self.adjustment = adjustment
+        self.options = adjustment.options
         self.initPlugin()
 
-    def initPlugin( self ):
+    def initPlugin(self):
         pass
 
-    def pluginOptions( self ):
+    def pluginOptions(self):
         return {}
 
-class Adjustment( object ):
 
-    '''
+class Adjustment(object):
+
+    """
     Class to adjust a network.  Can take parameters:
 
        stations:  Iterator over Station objects
@@ -184,134 +191,142 @@ class Adjustment( object ):
             def setupParameters( self )
                 ....
 
-    '''
+    """
 
-    softwareName='snappy network adjustment: Land Information New Zealand'
+    softwareName = "snappy network adjustment: Land Information New Zealand"
 
-    def __init__( self, 
-                 stations=Network(), 
-                 observations=[], 
-                 options=None,
-                 config_file=None,
-                 output_file=None,
-                 plugins=[],
-                 verbose=False):
+    def __init__(
+        self,
+        stations=Network(),
+        observations=[],
+        options=None,
+        config_file=None,
+        output_file=None,
+        plugins=[],
+        verbose=False,
+    ):
 
-        self.stations=stations
-        self.observations=observations
-        self.originalXyz={}
+        self.stations = stations
+        self.observations = observations
+        self.originalXyz = {}
 
-        self.options=Options()
+        self.options = Options()
         self.setupOptions()
         if verbose:
-            self.options.verbose=True
-        outputset=False
+            self.options.verbose = True
+        outputset = False
         if output_file is not None:
-            self.setOutputFile( output_file )
-            outputset=True
-        self.parameters=[]
-        self.plugins=[self]
-        self.pluginFuncs={}
+            self.setOutputFile(output_file)
+            outputset = True
+        self.parameters = []
+        self.plugins = [self]
+        self.pluginFuncs = {}
 
         # Each plugin is added before reading configuration
         if plugins is not None:
             for plugin in plugins:
-                self.addPluginClass( plugin )
-        self.solved=0
-        self.dof=0
-        self.seu=0.0
-        self.ssr=0.0
+                self.addPluginClass(plugin)
+        self.solved = 0
+        self.dof = 0
+        self.seu = 0.0
+        self.ssr = 0.0
 
         # Setup configuration
         if config_file is not None:
-            self.loadConfigFile( config_file, sys.stderr.write )
+            self.loadConfigFile(config_file, sys.stderr.write)
         if options is not None:
             self.options.update(options)
         if verbose:
-            self.options.verbose=True
+            self.options.verbose = True
         if output_file is None:
             self.setOutputFile()
 
-    def setOutputFile( self, output_file=None ):
+    def setOutputFile(self, output_file=None):
         if output_file is None:
             output_file = self.options.listingFile
-        if isinstance(output_file,basestring):
-            output_file=open(output_file,"w")
-        self.output=output_file
+        if isinstance(output_file, str):
+            output_file = open(output_file, "w")
+        self.output = output_file
 
-    def addPluginClass( self, pluginClass ):
-        if not inspect.isclass(pluginClass) or not issubclass( pluginClass, Plugin ):
-            raise RuntimeError('Invalid Adjustment plugin class '+str(pluginClass))
+    def addPluginClass(self, pluginClass):
+        if not inspect.isclass(pluginClass) or not issubclass(pluginClass, Plugin):
+            raise RuntimeError("Invalid Adjustment plugin class " + str(pluginClass))
         for plugin in self.plugins:
             if type(plugin) == pluginClass:
                 return
-        plugin=pluginClass(self)
+        plugin = pluginClass(self)
         plugin.initPlugin()
-        pluginopts=plugin.pluginOptions()
-        self.options.update(pluginopts,addoptions=True)
-        self.addPlugin( plugin )
+        pluginopts = plugin.pluginOptions()
+        self.options.update(pluginopts, addoptions=True)
+        self.addPlugin(plugin)
 
-    def addPlugin( self, plugin ):
+    def addPlugin(self, plugin):
         self.plugins.append(plugin)
-        self.pluginFuncs={}
+        self.pluginFuncs = {}
 
     @classmethod
-    def getPluginClassesByName( cls, pluginClassName ):
+    def getPluginClassesByName(cls, pluginClassName):
         # Two possible names for plugin module, one as entered and one
         # converted to mixed case.  To support consistency in configuration
         # file parameters using underscore separator.
 
-        pluginclasses=[]
-        origname=pluginClassName
-        altname=re.sub(r'(?:_|^)(\w)',lambda m: m.group(1).upper(),pluginClassName)
-        altnamep=altname+'Plugin'
+        pluginclasses = []
+        origname = pluginClassName
+        altname = re.sub(r"(?:_|^)(\w)", lambda m: m.group(1).upper(), pluginClassName)
+        altnamep = altname + "Plugin"
 
         # Try first for module in the path of the script
-        path0=os.path.dirname(os.path.abspath(sys.argv[0]))
+        path0 = os.path.dirname(os.path.abspath(sys.argv[0]))
 
         # Then in the Adjustment directory.  Search relative to the
         # base directory
-        path1=os.path.dirname(os.path.abspath(__file__))
-        packages=Adjustment.__module__.split('.')[:-1]
+        path1 = os.path.dirname(os.path.abspath(__file__))
+        packages = Adjustment.__module__.split(".")[:-1]
         for package in packages:
-            path1=os.path.dirname(path1)
-        packages='.'.join(packages)
-        module=None
+            path1 = os.path.dirname(path1)
+        packages = ".".join(packages)
+        module = None
 
-        modnames=set()
-        for name in [altnamep,altname,origname]:
-            oldpath=list(sys.path)
+        modnames = set()
+        for name in [altnamep, altname, origname]:
+            oldpath = list(sys.path)
             try:
-                sys.path[:]=[path0]
+                sys.path[:] = [path0]
                 try:
-                    module=__import__(name,fromlist=['*'])
+                    module = __import__(name, fromlist=["*"])
                 except ImportError:
                     modnames.add(name)
                     pass
                 if module is not None:
                     break
-                sys.path[:]=[path1]
-                modname=name
+                sys.path[:] = [path1]
+                modname = name
                 if packages:
-                    modname=packages+'.'+modname
+                    modname = packages + "." + modname
                 try:
-                    module=__import__(modname,fromlist=['*'])
+                    module = __import__(modname, fromlist=["*"])
                 except ImportError:
                     modnames.add(modname)
                     pass
                 if module is not None:
                     break
             finally:
-                sys.path[:]=oldpath
+                sys.path[:] = oldpath
         if module is None:
-            raise RuntimeError('Cannot load Adjustment plugin module '+name+'('+','.join(modnames)+')')
+            raise RuntimeError(
+                "Cannot load Adjustment plugin module "
+                + name
+                + "("
+                + ",".join(modnames)
+                + ")"
+            )
         for item in dir(module):
-            if item.startswith('_'):
+            if item.startswith("_"):
                 continue
-            value=getattr(module,item)
+            value = getattr(module, item)
             if not inspect.isclass(value):
                 continue
-            if not issubclass(value,Plugin):
+            if not issubclass(value, Plugin):
                 continue
             if value == Plugin:
                 continue
@@ -319,64 +334,79 @@ class Adjustment( object ):
 
         if len(pluginclasses) == 0:
             if module is not None:
-                pluginfile=' ('+module.__file__+')'
-            raise RuntimeError('No Adjustment plugin found in module {0}{1}'
-                               .format(pluginClassName,pluginfile))
+                pluginfile = " (" + module.__file__ + ")"
+            raise RuntimeError(
+                "No Adjustment plugin found in module {0}{1}".format(
+                    pluginClassName, pluginfile
+                )
+            )
         return pluginclasses
 
-    def addPluginClassByName( self, name ):
+    def addPluginClassByName(self, name):
         for pluginclass in Adjustment.getPluginClassesByName(name):
             self.addPluginClass(pluginclass)
 
-    def getPluginFunction( self, funcname, **options ):
+    def getPluginFunction(self, funcname, **options):
         # Default options
         if funcname not in self.pluginFuncs:
-            prepost=options.pop('runPrePostFunctions',False)
-            reverse=options.get('reverse',False)
-            prefunc=None
-            postfunc=None
+            prepost = options.pop("runPrePostFunctions", False)
+            reverse = options.get("reverse", False)
+            prefunc = None
+            postfunc = None
             if prepost:
-                prefuncname=re.sub('^(.)',lambda m: 'pre'+m.group(1).upper(),funcname)
-                options['reverse']=True
-                prefunc=self.getPluginFunction(prefuncname,**options)
-                postfuncname=re.sub('^(.)',lambda m: 'post'+m.group(1).upper(),funcname)
-                options['reverse']=False
-                postfunc=self.getPluginFunction(postfuncname,**options)
+                prefuncname = re.sub(
+                    "^(.)", lambda m: "pre" + m.group(1).upper(), funcname
+                )
+                options["reverse"] = True
+                prefunc = self.getPluginFunction(prefuncname, **options)
+                postfuncname = re.sub(
+                    "^(.)", lambda m: "post" + m.group(1).upper(), funcname
+                )
+                options["reverse"] = False
+                postfunc = self.getPluginFunction(postfuncname, **options)
 
-            firstOnly=options.get('firstOnly',False)
-            firstTrue=options.get('firstTrue',False)
-            funcs=[
-                getattr(p,funcname,None) for p in self.plugins
-                if getattr(p,funcname,None) is not None and callable(getattr(p,funcname))
-                ]
+            firstOnly = options.get("firstOnly", False)
+            firstTrue = options.get("firstTrue", False)
+            funcs = [
+                getattr(p, funcname, None)
+                for p in self.plugins
+                if getattr(p, funcname, None) is not None
+                and callable(getattr(p, funcname))
+            ]
             if reverse:
                 funcs.reverse()
             if firstOnly:
-                funcdef=funcs[0]
+                funcdef = funcs[0]
             elif firstTrue:
-                def funcdef( *params ):
+
+                def funcdef(*params):
                     for f in funcs:
-                        result=f(*params)
+                        result = f(*params)
                         if result is not None and result is not False:
                             return result
                     return
+
             else:
-                funcdef=lambda *params: [f(*params) for f in funcs]
+                funcdef = lambda *params: [f(*params) for f in funcs]
             if prepost:
-                impfunc=funcdef
-                funcdef=lambda *params: [prefunc(*params),impfunc(*params),postfunc(*params)]
-            self.pluginFuncs[funcname]=funcdef
+                impfunc = funcdef
+                funcdef = lambda *params: [
+                    prefunc(*params),
+                    impfunc(*params),
+                    postfunc(*params),
+                ]
+            self.pluginFuncs[funcname] = funcdef
 
         return self.pluginFuncs[funcname]
 
-    def runPluginFunction( self, funcname, *params, **options ):
-        funcdef=self.getPluginFunction(funcname,**options)
+    def runPluginFunction(self, funcname, *params, **options):
+        funcdef = self.getPluginFunction(funcname, **options)
         return funcdef(*params)
 
     def setupOptions(self):
-        '''
+        """
         Setup options.  Installs adjustment options into an Options class
-        '''
+        """
         self.options.setupOptions(
             # File names
             listingFile=None,
@@ -390,322 +420,349 @@ class Adjustment( object ):
             outputResidualFile=None,
             outputStatsFile=None,
             outputResidualFileOptions={},
-
             # Station options
             fixedStations=[],
             acceptStations=[],
             floatStations=[],
             ignoreMissingStations=False,
-
             # ObservationOptions
             reweightObservations=[],
             recodeObservations=[],
             rejectObservations=[],
-
             # Adjustment options
             minIterations=0,
             maxIterations=10,
             convergenceTolerance=0.0001,
             adjustENU=False,
             refractionCoefficient=0.075,
-
             # Output options
             verbose=False,
-
             # Specific outputs - only apply if verbose is True
             debugStationOffsets=False,
             debugObservationEquations=False,
             debugFloatStations=False,
-
             # Sinex output options
             sinexIds={},
             sinexHeaders={},
             sinexOutputFile=None,
-
             # Ignore unrecognized config
             ignoreUnknownConfig=False,
-            )
+        )
 
-    def splitConfigValue( self, value ):
-        '''
+    def splitConfigValue(self, value):
+        """
         Split a configuration value based on white space.  Values
         may be quoted with ".." to include whitespace 
-        '''
-        fieldre=r'\s+(\"[^\"]*\"|[^\s\"]\S*)'
-        value=' '+value
-        if not re.match('^(?:'+fieldre+')+$',value):
+        """
+        fieldre = r"\s+(\"[^\"]*\"|[^\s\"]\S*)"
+        value = " " + value
+        if not re.match("^(?:" + fieldre + ")+$", value):
             return None
-        parts=[]
-        for m in re.finditer(fieldre,value):
-            item=m.group(1)
+        parts = []
+        for m in re.finditer(fieldre, value):
+            item = m.group(1)
             if item.startswith('"'):
-                item=item[1:-1]
+                item = item[1:-1]
             parts.append(item)
         return parts
 
-    def _splitStationList( self, stnlist ):
+    def _splitStationList(self, stnlist):
         for s in stnlist.split():
-            if s.startswith('@'):
-                n=Network()
+            if s.startswith("@"):
+                n = Network()
                 n.readCsv(s[1:])
                 for s in n.stations():
                     yield s.code()
             else:
                 yield s
 
-    def _recodeObsFunc( self, rfrom, rto, regex ):
+    def _recodeObsFunc(self, rfrom, rto, regex):
         if regex:
-            pattern=re.compile(rfrom)
-            return lambda x: pattern.sub(rto,x)
+            pattern = re.compile(rfrom)
+            return lambda x: pattern.sub(rto, x)
         return lambda x: rto if x == rfrom else x
 
-    def setConfigOption( self, item, value ):
-        item=item.lower()
-        value=value.strip()
+    def setConfigOption(self, item, value):
+        item = item.lower()
+        value = value.strip()
         # Plugins
-        if item == 'use_plugin':
-            self.addPluginClassByName( value )
+        if item == "use_plugin":
+            self.addPluginClassByName(value)
         # File names
-        elif item == 'listing_file':
-            self.options.listingFile=value
-        elif item == 'coordinate_file':
+        elif item == "listing_file":
+            self.options.listingFile = value
+        elif item == "coordinate_file":
             self.options.stationFiles.append(value)
-        elif item == 'data_file':
-            parts=self.splitConfigValue(value)
+        elif item == "data_file":
+            parts = self.splitConfigValue(value)
             if parts is None:
-                raise RuntimeError("Invalid data_file definition "+value)
-            filename=parts[0]
-            attributes={}
+                raise RuntimeError("Invalid data_file definition " + value)
+            filename = parts[0]
+            attributes = {}
             for p in parts[1:]:
-                m = re.match(r'^(\w+)\=(.+)$',p)
+                m = re.match(r"^(\w+)\=(.+)$", p)
                 if m:
-                    attributes[m.group(1)]=m.group(2)
+                    attributes[m.group(1)] = m.group(2)
                 else:
-                    raise RuntimeError("Invalid data_file attribute "+p)
+                    raise RuntimeError("Invalid data_file attribute " + p)
             self.options.dataFiles.append(
-                {'filename':filename,'attributes':attributes})
-        elif item == 'output_coordinate_file':
-            parts=self.splitConfigValue(value)
-            self.options.outputStationFile=parts[0]
+                {"filename": filename, "attributes": attributes}
+            )
+        elif item == "output_coordinate_file":
+            parts = self.splitConfigValue(value)
+            self.options.outputStationFile = parts[0]
             for option in parts[1:]:
-                option=option.lower()
-                if option == 'geodetic':
-                    self.options.outputStationFileGeodetic=True
-                elif option == 'xyz':
-                    self.options.outputStationFileGeodetic=False
-                elif option == 'covariances':
-                    self.options.outputStationCovariances=True
-                elif option == 'ellipses' or option == 'error_ellipses':
-                    self.options.outputStationErrorEllipses=True
-                elif option == 'offsets':
-                    self.options.outputStationOffsets=True
+                option = option.lower()
+                if option == "geodetic":
+                    self.options.outputStationFileGeodetic = True
+                elif option == "xyz":
+                    self.options.outputStationFileGeodetic = False
+                elif option == "covariances":
+                    self.options.outputStationCovariances = True
+                elif option == "ellipses" or option == "error_ellipses":
+                    self.options.outputStationErrorEllipses = True
+                elif option == "offsets":
+                    self.options.outputStationOffsets = True
                 else:
-                    raise RuntimeError('Invalid output_coordinate_file option '+option)
-        elif item == 'stats_json_file':
-            self.options.outputStatsFile=value
-        elif item == 'residual_csv_file':
-            parts=self.splitConfigValue(value)
-            self.options.outputResidualFile=parts[0]
-            options={}
+                    raise RuntimeError(
+                        "Invalid output_coordinate_file option " + option
+                    )
+        elif item == "stats_json_file":
+            self.options.outputStatsFile = value
+        elif item == "residual_csv_file":
+            parts = self.splitConfigValue(value)
+            self.options.outputResidualFile = parts[0]
+            options = {}
             for p in parts[1:]:
-                m = re.match(r'^(\w+)(?:\=(.+))?$',p)
+                m = re.match(r"^(\w+)(?:\=(.+))?$", p)
                 if m:
-                    options[m.group(1)]=m.group(2)
+                    options[m.group(1)] = m.group(2)
                 else:
-                    raise RuntimeError("Invalid data_file attribute "+p)
-            self.options.outputResidualFileOptions=options
-        elif item == 'sinex_output_file':
-            self.options.sinexOutputFile=value
-        elif item == 'sinex_site_id':
-            parts=value.split(None,4)
+                    raise RuntimeError("Invalid data_file attribute " + p)
+            self.options.outputResidualFileOptions = options
+        elif item == "sinex_output_file":
+            self.options.sinexOutputFile = value
+        elif item == "sinex_site_id":
+            parts = value.split(None, 4)
             if len(parts) != 5:
-                raise RuntimeError('Invalid sinex_site_id: '+value)
-            mark,id,code,monument,description=parts
-            self.options.sinexIds[mark]={'id':id,'code':code,'monument':monument,'description':description}
-        elif item == 'sinex_header_info':
-            parts=value.split(None,1)
+                raise RuntimeError("Invalid sinex_site_id: " + value)
+            mark, id, code, monument, description = parts
+            self.options.sinexIds[mark] = {
+                "id": id,
+                "code": code,
+                "monument": monument,
+                "description": description,
+            }
+        elif item == "sinex_header_info":
+            parts = value.split(None, 1)
             if len(parts) != 2:
-                raise RuntimeError('Invalid sinex_header_info: '+value)
-            self.options.sinexHeaders[parts[0].upper()]=parts[1]
+                raise RuntimeError("Invalid sinex_header_info: " + value)
+            self.options.sinexHeaders[parts[0].upper()] = parts[1]
         # Station selection
-        elif item == 'fix':
-            self.options.fixedStations.extend(((True,v) for v in self._splitStationList(value)))
-        elif item == 'free':
-            self.options.fixedStations.extend(((False,v) for v in self._splitStationList(value)))
-        elif item == 'accept':
-            self.options.acceptStations.extend(((True,v) for v in self._splitStationList(value)))
-        elif item == 'reject':
-            self.options.acceptStations.extend(((False,v) for v in self._splitStationList(value)))
-        elif item == 'float':
+        elif item == "fix":
+            self.options.fixedStations.extend(
+                ((True, v) for v in self._splitStationList(value))
+            )
+        elif item == "free":
+            self.options.fixedStations.extend(
+                ((False, v) for v in self._splitStationList(value))
+            )
+        elif item == "accept":
+            self.options.acceptStations.extend(
+                ((True, v) for v in self._splitStationList(value))
+            )
+        elif item == "reject":
+            self.options.acceptStations.extend(
+                ((False, v) for v in self._splitStationList(value))
+            )
+        elif item == "float":
             try:
-                hfs,vfs,slist=value.split(None,2)
-                hfloat=float(hfs)
-                vfloat=float(vfs)
-                self.options.floatStations.extend((((hfloat,vfloat),v) for v in self._splitStationList(value)))
+                hfs, vfs, slist = value.split(None, 2)
+                hfloat = float(hfs)
+                vfloat = float(vfs)
+                self.options.floatStations.extend(
+                    (((hfloat, vfloat), v) for v in self._splitStationList(value))
+                )
             except:
-                raise RuntimeError("Invalid float option: "+value)
-                
-        elif item == 'ignore_missing_stations':
-            self.options.ignoreMissingStations=Options.boolOption(value)
+                raise RuntimeError("Invalid float option: " + value)
+
+        elif item == "ignore_missing_stations":
+            self.options.ignoreMissingStations = Options.boolOption(value)
 
         # Observation options
         # (deprecated reweight_observation_type)
-        elif item == 'reweight_observation_type':
-            match=re.match(r'([a-z]{2})\s+(\d+(?:\.\d+)?)$',value,re.I)
+        elif item == "reweight_observation_type":
+            match = re.match(r"([a-z]{2})\s+(\d+(?:\.\d+)?)$", value, re.I)
             if not match:
-                raise RuntimeError('Invalid reweight_observation_type option: '+value)
-            typecode=match.group(1).upper()
-            factor=float(match.group(2))
-            criteria=self._matchObsFunc('type='+typecode)
-            self.options.reweightObservations.append((criteria,factor))
-        elif item == 'reweight_observations':
-            match=re.match(r'(\d+(?:\.\d+)?)\s+(\S.*?)\s*$',value,re.I)
+                raise RuntimeError("Invalid reweight_observation_type option: " + value)
+            typecode = match.group(1).upper()
+            factor = float(match.group(2))
+            criteria = self._matchObsFunc("type=" + typecode)
+            self.options.reweightObservations.append((criteria, factor))
+        elif item == "reweight_observations":
+            match = re.match(r"(\d+(?:\.\d+)?)\s+(\S.*?)\s*$", value, re.I)
             if not match:
-                raise RuntimeError('Invalid reweight_observations option: '+value)
-            factor=float(match.group(1))
-            criteria=self._matchObsFunc(match.group(2))
-            self.options.reweightObservations.append((criteria,factor))
-        elif item == 'recode_observations':
-            match=re.match(r'(re\:)?(\S+)\s+(\S+)(?:\s+(\S.*?))?\s*$',value)
+                raise RuntimeError("Invalid reweight_observations option: " + value)
+            factor = float(match.group(1))
+            criteria = self._matchObsFunc(match.group(2))
+            self.options.reweightObservations.append((criteria, factor))
+        elif item == "recode_observations":
+            match = re.match(r"(re\:)?(\S+)\s+(\S+)(?:\s+(\S.*?))?\s*$", value)
             if not match:
-                raise RuntimeError('Invalid recode_observations option: '+value)
-            repfunc=self._recodeObsFunc(match.group(2),match.group(3),match.group(1)=='re:')
-            condition=match.group(4)
+                raise RuntimeError("Invalid recode_observations option: " + value)
+            repfunc = self._recodeObsFunc(
+                match.group(2), match.group(3), match.group(1) == "re:"
+            )
+            condition = match.group(4)
             if condition:
-                criteria=self._matchObsFunc(condition)
+                criteria = self._matchObsFunc(condition)
             else:
-                criteria=lambda o, ov: True
-            self.options.recodeObservations.append((criteria,repfunc))
-        elif item == 'reject_observations':
-            if value == '':
-                raise RuntimeError('Missing reject_observations criteria')
-            criteria=self._matchObsFunc(value)
+                criteria = lambda o, ov: True
+            self.options.recodeObservations.append((criteria, repfunc))
+        elif item == "reject_observations":
+            if value == "":
+                raise RuntimeError("Missing reject_observations criteria")
+            criteria = self._matchObsFunc(value)
             self.options.rejectObservations.append(criteria)
 
         # Adjustment options
-        elif item == 'convergence_tolerance':
-            self.options.convergenceTolerance=float(value)
-        elif item == 'max_iterations':
-            self.options.maxIterations=int(value)
-        elif item == 'min_iterations':
-            self.options.minIterations=int(value)
-        elif item == 'adjust_enu':
-            self.options.adjustENU=Options.boolOption(value)
-        elif item == 'refraction_coefficient':
-            self.options.refractionCoefficient=float(value)
+        elif item == "convergence_tolerance":
+            self.options.convergenceTolerance = float(value)
+        elif item == "max_iterations":
+            self.options.maxIterations = int(value)
+        elif item == "min_iterations":
+            self.options.minIterations = int(value)
+        elif item == "adjust_enu":
+            self.options.adjustENU = Options.boolOption(value)
+        elif item == "refraction_coefficient":
+            self.options.refractionCoefficient = float(value)
 
         # Output options
-        elif item == 'verbose':
-            self.options.verbose=Options.boolOption(value)
+        elif item == "verbose":
+            self.options.verbose = Options.boolOption(value)
 
         # Debug options
-        elif item == 'debug':
+        elif item == "debug":
             for debugopt in value.lower().split():
-                if debugopt == 'observation_equations':
-                    self.options.debugObservationEquations=True
-                elif debugopt == 'station_offsets':
-                    self.options.debugStationOffsets=True
-                elif debugopt == 'float_stations':
-                    self.options.debugFloatStations=True
+                if debugopt == "observation_equations":
+                    self.options.debugObservationEquations = True
+                elif debugopt == "station_offsets":
+                    self.options.debugStationOffsets = True
+                elif debugopt == "float_stations":
+                    self.options.debugFloatStations = True
                 else:
-                    raise RuntimeError('Invalid debug option {0}'.format(debugopt))
-        elif item == 'debug_observation_equations':
-            self.options.debugObservationEquations=Options.boolOption(value)
-        elif item == 'debug_station_offsets':
-            self.options.debugStationOffsets=Options.boolOption(value)
-        elif item == 'debug_float_stations':
-            self.options.debugFloatStations=Options.boolOption(value)
-        elif item == 'ignore_unknown_config_item':
-            self.options.ignoreUnknownConfig=Options.boolOption(value)
+                    raise RuntimeError("Invalid debug option {0}".format(debugopt))
+        elif item == "debug_observation_equations":
+            self.options.debugObservationEquations = Options.boolOption(value)
+        elif item == "debug_station_offsets":
+            self.options.debugStationOffsets = Options.boolOption(value)
+        elif item == "debug_float_stations":
+            self.options.debugFloatStations = Options.boolOption(value)
+        elif item == "ignore_unknown_config_item":
+            self.options.ignoreUnknownConfig = Options.boolOption(value)
         elif not self.options.ignoreUnknownConfig:
-            raise RuntimeError('Unrecognized configuration item: '+item+': '+value)
+            raise RuntimeError(
+                "Unrecognized configuration item: " + item + ": " + value
+            )
 
-    def setConfig( self, item, value ):
-        '''
+    def setConfig(self, item, value):
+        """
         Set a configuration option based on the text item/value read from a 
         configuration file
-        '''
-        self.runPluginFunction('setConfigOption',item,value,firstTrue=True,reverse=True)
+        """
+        self.runPluginFunction(
+            "setConfigOption", item, value, firstTrue=True, reverse=True
+        )
 
-    def loadConfigFile( self, config_file, write=None ):
-        cfg={}
-        nerrors=0
-        (configdir,configname)=os.path.split(config_file)
-        configname=os.path.splitext(configname)[0]
-        configpath=os.path.join(configdir,configname)
-        if configdir != '':
-            configdir=configdir+'/'
-        vars={
-            'configpath': configpath,
-            'configname': configname,
-            'configdir':  configdir
-            }
+    def loadConfigFile(self, config_file, write=None):
+        cfg = {}
+        nerrors = 0
+        (configdir, configname) = os.path.split(config_file)
+        configname = os.path.splitext(configname)[0]
+        configpath = os.path.join(configdir, configname)
+        if configdir != "":
+            configdir = configdir + "/"
+        vars = {
+            "configpath": configpath,
+            "configname": configname,
+            "configdir": configdir,
+        }
         with open(config_file) as cfgf:
             for l in cfgf:
                 try:
-                    l=l.strip()
-                    if len(l)==0 or l.startswith('#'):
+                    l = l.strip()
+                    if len(l) == 0 or l.startswith("#"):
                         continue
                     try:
-                        parts=l.split(None,1)
-                        item=parts[0].lower()
-                        value=parts[1] if len(parts)==2 else 'y'
+                        parts = l.split(None, 1)
+                        item = parts[0].lower()
+                        value = parts[1] if len(parts) == 2 else "y"
                     except:
-                        raise RuntimeError("Invalid configuration line: ",l)
-                    value=re.sub(r'\$\{(\w+)\}',lambda m: vars.get(m.group(1),m.group(0)),value)
-                    self.setConfig( item, value )
+                        raise RuntimeError("Invalid configuration line: ", l)
+                    value = re.sub(
+                        r"\$\{(\w+)\}",
+                        lambda m: vars.get(m.group(1), m.group(0)),
+                        value,
+                    )
+                    self.setConfig(item, value)
                 except Exception as ex:
                     if write is not None:
                         write(ex.message)
                         write("\n")
-                        nerrors+=1
+                        nerrors += 1
                     else:
                         raise
         if nerrors > 0:
-            raise RuntimeError("Stopped with {0} errors in configuration file".format(nerrors))
+            raise RuntimeError(
+                "Stopped with {0} errors in configuration file".format(nerrors)
+            )
 
-    def write( self, message, debug=False ):
+    def write(self, message, debug=False):
         if self.output is not None:
-            self.output.write( message )
-        if self.options.verbose and not debug: 
+            self.output.write(message)
+        if self.options.verbose and not debug:
             sys.stdout.write(message)
 
-    def writeDebugOutput( self, message ):
-        self.write( message, True )
+    def writeDebugOutput(self, message):
+        self.write(message, True)
 
-    def observationSourceIterator( self, observationFile, **attributes ):
-        '''
+    def observationSourceIterator(self, observationFile, **attributes):
+        """
         Interpret the observation file definition to obtain an iterator
         over the observations in the file
-        '''
-        filetype=''
-        match=re.match(r'^(\w+)\:(.*)$',observationFile)
+        """
+        filetype = ""
+        match = re.match(r"^(\w+)\:(.*)$", observationFile)
         if match:
-            filetype=match.group(1).lower()
-            observationFile=match.group(2)
-        if filetype == '':
-            match=re.search(r'\.(\w+)$',observationFile)
+            filetype = match.group(1).lower()
+            observationFile = match.group(2)
+        if filetype == "":
+            match = re.search(r"\.(\w+)$", observationFile)
             if match:
-                filetype=match.group(1).lower()
-        if filetype == '' and re.search(r'\.snx(\.gz)?$',observationFile,re.I):
-            filetype = 'snx'
-        if filetype == 'msr':
+                filetype = match.group(1).lower()
+        if filetype == "" and re.search(r"\.snx(\.gz)?$", observationFile, re.I):
+            filetype = "snx"
+        if filetype == "msr":
             from . import MsrFile
-            reader=MsrFile.read
-        elif filetype == 'snx':
-            from . import SinexObsFile
-            reader=SinexObsFile.read
-        elif filetype == 'csvhor':
-            from . import CsvObsFile
-            reader=CsvObsFile.readConvertToHorDist
-        elif filetype == 'csv':
-            from . import CsvObsFile
-            reader=CsvObsFile.read
-        else:
-            raise RuntimeError('Invalid observation file type '+filetype)
-        return reader(observationFile,**attributes)
 
-    def loadDataFiles( self ):
+            reader = MsrFile.read
+        elif filetype == "snx":
+            from . import SinexObsFile
+
+            reader = SinexObsFile.read
+        elif filetype == "csvhor":
+            from . import CsvObsFile
+
+            reader = CsvObsFile.readConvertToHorDist
+        elif filetype == "csv":
+            from . import CsvObsFile
+
+            reader = CsvObsFile.read
+        else:
+            raise RuntimeError("Invalid observation file type " + filetype)
+        return reader(observationFile, **attributes)
+
+    def loadDataFiles(self):
 
         # Load the coordinate files
         if len(self.options.stationFiles) > 0:
@@ -715,24 +772,24 @@ class Adjustment( object ):
                 self.stations.readCsv(crdfile)
 
         # Save initial station coordinates
-        originalXyz={}
+        originalXyz = {}
         for stn in self.stations.stations():
             try:
-                xyz=stn.xyz()
-                originalXyz[stn.code()]=np.array(xyz)
+                xyz = stn.xyz()
+                originalXyz[stn.code()] = np.array(xyz)
             except:
                 pass
-        self.originalXyz=originalXyz
+        self.originalXyz = originalXyz
 
-        first=True
+        first = True
         for obsfile in self.options.dataFiles:
-            filename=obsfile['filename']
-            attributes=obsfile['attributes']
+            filename = obsfile["filename"]
+            attributes = obsfile["attributes"]
             if first:
                 self.write("\nObservation files:\n")
-                first=False
+                first = False
             self.write("  {0}\n".format(filename))
-            obsiterator=self.observationSourceIterator( filename, **attributes )
+            obsiterator = self.observationSourceIterator(filename, **attributes)
             self.observations.extend(obsiterator)
 
         if self.options.recodeObservations:
@@ -744,100 +801,105 @@ class Adjustment( object ):
         if self.options.reweightObservations:
             self.reweightObsByCriteria(self.options.reweightObservations)
 
-    def usedStations( self, includeFixed=True ):
-        '''
+    def usedStations(self, includeFixed=True):
+        """
         Get dictionary with keys matching the stations used in the list
         of observations.  If includeFixed is False then only adjusted
         stations are included.
-        '''
-        used={}
+        """
+        used = {}
         for o in self.observations:
             for obsval in o.obsvalues:
-                used[obsval.inststn]=1
-                used[obsval.trgtstn]=1
-        used={code:1 for code in used if self.stations.get(code) is not None}
+                used[obsval.inststn] = 1
+                used[obsval.trgtstn] = 1
+        used = {code: 1 for code in used if self.stations.get(code) is not None}
         if not includeFixed:
-            fixedstn=self._useStationFunc(self.options.fixedStations,False)
-            used={code:1 for code in used if not fixedstn(code)}
+            fixedstn = self._useStationFunc(self.options.fixedStations, False)
+            used = {code: 1 for code in used if not fixedstn(code)}
         return used
 
-    def missingStationList( self, clean=False ):
-        missing=set()
-        good_station=lambda x: x is None or self.stations.get(x) is not None
+    def missingStationList(self, clean=False):
+        missing = set()
+        good_station = lambda x: x is None or self.stations.get(x) is not None
         for obs in self.observations:
             for o in obs.obsvalues:
                 if not good_station(o.inststn):
-                    missing.add((False,o.inststn))
+                    missing.add((False, o.inststn))
                 if not good_station(o.trgtstn):
-                    missing.add((False,o.trgtstn))
+                    missing.add((False, o.trgtstn))
         if clean:
             self.filterObsByStation(missing)
-        missing=list(missing)
-        missing.sort( key=lambda x: x[1] )
+        missing = list(missing)
+        missing.sort(key=lambda x: x[1])
         return missing
 
-    def _matchCodeFunc( self, code ):
-        code=code.lower()
-        if code == '*':
-            f=lambda c: True
-        elif code.startswith('re:'):
-            codere=re.compile('^'+code[3:]+'$',re.I)
-            f=lambda c: codere.match(c) is not None
+    def _matchCodeFunc(self, code):
+        code = code.lower()
+        if code == "*":
+            f = lambda c: True
+        elif code.startswith("re:"):
+            codere = re.compile("^" + code[3:] + "$", re.I)
+            f = lambda c: codere.match(c) is not None
         else:
-            if code.startswith(':'):
-                code=code[1:]
-            f=lambda c: c.lower() == code
+            if code.startswith(":"):
+                code = code[1:]
+            f = lambda c: c.lower() == code
         return f
 
-    def _matchObsFunc( self, conditions ):
+    def _matchObsFunc(self, conditions):
         # Need functions to isolate closures...
         def instfunc(code):
-            f=self._matchCodeFunc(code)
+            f = self._matchCodeFunc(code)
             return lambda o, ov: f(ov.inststn)
+
         def trgtfunc(code):
-            f=self._matchCodeFunc(code)
+            f = self._matchCodeFunc(code)
             return lambda o, ov: f(ov.trgtstn)
+
         def typefunc(value):
-            value=value.upper()
-            return lambda o,ov: o.obstype.code == value
-        def attrfunc(attr,value):
-            f=self._matchCodeFunc(value)
-            return lambda o,ov: f(ov.attributes.get(attr,''))
+            value = value.upper()
+            return lambda o, ov: o.obstype.code == value
+
+        def attrfunc(attr, value):
+            f = self._matchCodeFunc(value)
+            return lambda o, ov: f(ov.attributes.get(attr, ""))
 
         try:
-            tests=[]
+            tests = []
             for condition in conditions.split():
-                field,value=condition.split('=',1)
-                reverse=False
-                if field.endswith('!'):
-                    reverse=True
-                    field=field[:-1].strip()
-                if field == 'inststn':
-                    f=instfunc(value)
-                elif field == 'trgtstn':
-                    f=trgtfunc(value)
-                elif field == 'type':
-                    f=typefunc(value)
-                elif field.startswith('attr:'):
-                    f=attrfunc(field[5:],value)
-                else: 
-                    raise RuntimeError('')
+                field, value = condition.split("=", 1)
+                reverse = False
+                if field.endswith("!"):
+                    reverse = True
+                    field = field[:-1].strip()
+                if field == "inststn":
+                    f = instfunc(value)
+                elif field == "trgtstn":
+                    f = trgtfunc(value)
+                elif field == "type":
+                    f = typefunc(value)
+                elif field.startswith("attr:"):
+                    f = attrfunc(field[5:], value)
+                else:
+                    raise RuntimeError("")
                 if reverse:
-                    f1=f
-                    f=lambda o,ov: not f1(o,ov)
-                setattr(f,'condition',condition)
+                    f1 = f
+                    f = lambda o, ov: not f1(o, ov)
+                setattr(f, "condition", condition)
                 tests.append(f)
-            def testfunc(o,ov):
+
+            def testfunc(o, ov):
                 for t in tests:
-                    if not t(o,ov): 
+                    if not t(o, ov):
                         return False
                 return True
+
             return testfunc
         except:
-            raise RuntimeError('Invalid observation selection criteria: '+conditions)
+            raise RuntimeError("Invalid observation selection criteria: " + conditions)
 
-    def _useStationFunc( self, uselist, default=True ):
-        '''
+    def _useStationFunc(self, uselist, default=True):
+        """
         Create a function to test a station code against a set of
         criteria.  The criteria are defined in a uselist which is
         a list of pairs (use,code).  
@@ -856,163 +918,178 @@ class Adjustment( object ):
         or None if it is not True or False
 
         All station code matching is case insensitive
-        '''
+        """
         if not uselist:
             return lambda code: default
 
         # If first action is to set status to True, then initial status must
         # be false
-        status0=uselist[0][0]
-        startStatus=False if status0 is True else True if status0 is False else None
-        def usefunc( use, code ):
-            m=self._matchCodeFunc(code)
-            return lambda c,s: use if m(c) else s
-        funcs=tuple(usefunc(use,code) for use,code in uselist)
+        status0 = uselist[0][0]
+        startStatus = False if status0 is True else True if status0 is False else None
 
-        def usestation( code ):
+        def usefunc(use, code):
+            m = self._matchCodeFunc(code)
+            return lambda c, s: use if m(c) else s
+
+        funcs = tuple(usefunc(use, code) for use, code in uselist)
+
+        def usestation(code):
             if code is None:
                 return True
-            code=code.lower()
-            status=startStatus
-            for f in funcs: status=f(code,status)
+            code = code.lower()
+            status = startStatus
+            for f in funcs:
+                status = f(code, status)
             return status
+
         return usestation
 
-    def recodeObs( self ):
-        '''
+    def recodeObs(self):
+        """
         Apply the observation station coordinate recoding options
         Recoding is applied sequentially to observations.
-        '''
-        recodes=self.options.recodeObservations
+        """
+        recodes = self.options.recodeObservations
         for obs in self.observations:
             for o in obs.obsvalues:
-                for criteria,update in recodes:
-                    if criteria(obs,o):
+                for criteria, update in recodes:
+                    if criteria(obs, o):
                         if o.inststn is not None:
-                            o.inststn=update(o.inststn)
+                            o.inststn = update(o.inststn)
                         if o.trgtstn is not None:
-                            o.trgtstn=update(o.trgtstn)
+                            o.trgtstn = update(o.trgtstn)
 
-    def filterObsByStation( self, uselist ):
-        '''
+    def filterObsByStation(self, uselist):
+        """
         Filter observations by station.  Takes a list of station
         accept/reject criteria 
-        '''
-        usestn=self._useStationFunc(uselist)
-        useobs=lambda obs,ov: usestn(ov.inststn) and usestn(ov.trgtstn)
+        """
+        usestn = self._useStationFunc(uselist)
+        useobs = lambda obs, ov: usestn(ov.inststn) and usestn(ov.trgtstn)
         self.write("Applying station rejection criteria to observations\n")
         self.filterObservations(useobs)
 
-    def filterObsByCriteria( self, criteria ):
-        '''
+    def filterObsByCriteria(self, criteria):
+        """
         Apply rejection criteria to observations
-        '''
+        """
         if len(criteria) == 0:
             return
         if len(criteria) == 1:
-            criteriafunc=criteria[0]
+            criteriafunc = criteria[0]
         else:
-            def criteriafunc(o,ov):
+
+            def criteriafunc(o, ov):
                 for c in criteria:
-                    if c(o,ov):
+                    if c(o, ov):
                         return True
                 return False
-        self.write("Applying observation rejection criteria\n")
-        self.filterObservations( lambda o, ov: not criteriafunc(o,ov) )
 
-    def filterObservations( self, select ):
-        '''
+        self.write("Applying observation rejection criteria\n")
+        self.filterObservations(lambda o, ov: not criteriafunc(o, ov))
+
+    def filterObservations(self, select):
+        """
         Filter observations using a function select.  Select takes
         parameters (obs, obsvalue) and returns True to retain the 
         observation.
-        '''
-        goodobs=[]
+        """
+        goodobs = []
         for obs in self.observations:
-            goodvalues=[]
-            goodrows=[]
-            nvalue=obs.obstype.nvalue
-            for i,o in enumerate(obs.obsvalues):
-                if select(obs,o):
+            goodvalues = []
+            goodrows = []
+            nvalue = obs.obstype.nvalue
+            for i, o in enumerate(obs.obsvalues):
+                if select(obs, o):
                     goodvalues.append(o)
-                    goodrows.extend(range(i*nvalue,(i+1)*nvalue))
-            if len(goodvalues)==len(obs.obsvalues):
+                    goodrows.extend(list(range(i * nvalue, (i + 1) * nvalue)))
+            if len(goodvalues) == len(obs.obsvalues):
                 goodobs.append(obs)
                 continue
-            if len(goodvalues)==0:
+            if len(goodvalues) == 0:
                 continue
-            covariance=obs.covariance
+            covariance = obs.covariance
             if covariance is not None:
-                covariance=covariance[goodrows,:][:,goodrows]
-            o=Observation(obs.obstype.code,obsdate=obs.obsdate,obsvalue=goodvalues,covariance=covariance)
+                covariance = covariance[goodrows, :][:, goodrows]
+            o = Observation(
+                obs.obstype.code,
+                obsdate=obs.obsdate,
+                obsvalue=goodvalues,
+                covariance=covariance,
+            )
             goodobs.append(o)
-        self.write("Filtering {0} observations to {1}\n".format(len(self.observations),len(goodobs)))
-        self.observations=goodobs
+        self.write(
+            "Filtering {0} observations to {1}\n".format(
+                len(self.observations), len(goodobs)
+            )
+        )
+        self.observations = goodobs
 
-    def reweightObsByCriteria( self, criteria ):
-        '''
+    def reweightObsByCriteria(self, criteria):
+        """
         Reweight observations based on a list of (func,weight) pairs where
         func is a function of observation and observation value returning a
         True if the criteria are matched, and weight is a reweighting factor
         applied to the standard error.
-        '''
+        """
         if len(criteria) < 1:
             return
         self.write("Applying observation reweighting")
         for obs in self.observations:
-            w=np.ones((len(obs.obsvalues),obs.obstype.nvalue))
-            matched=False
-            for i,ov in enumerate(obs.obsvalues):
-                for test,weight in criteria:
-                    if test(obs,ov):
-                        matched=True
+            w = np.ones((len(obs.obsvalues), obs.obstype.nvalue))
+            matched = False
+            for i, ov in enumerate(obs.obsvalues):
+                for test, weight in criteria:
+                    if test(obs, ov):
+                        matched = True
                         w[i] *= weight
             if not matched:
                 continue
             if obs.covariance is None:
-                for i,ov in enumerate(obs.obsvalues):
+                for i, ov in enumerate(obs.obsvalues):
                     if ov.stderr is not None:
-                        ov.stderr *= w[i,0]
+                        ov.stderr *= w[i, 0]
             else:
-                w=w.ravel()
-                obs.covariance=obs.covariance*w*w.reshape((len(w),1))
+                w = w.ravel()
+                obs.covariance = obs.covariance * w * w.reshape((len(w), 1))
 
-    def countObservations( self ):
-        counts={}
+    def countObservations(self):
+        counts = {}
         for obs in self.observations:
-            obstype=obs.obstype
+            obstype = obs.obstype
             if obstype not in counts:
-                counts[obstype]=[0,0]
+                counts[obstype] = [0, 0]
             counts[obstype][0] += 1
             counts[obstype][1] += len(obs.obsvalues)
         return counts
 
-    def initParameters( self ):
-        self.coordParamMapping={}
-        self.parameters=[]
-        self.updateFuncs=[]
-        self.nparam=0
+    def initParameters(self):
+        self.coordParamMapping = {}
+        self.parameters = []
+        self.updateFuncs = []
+        self.nparam = 0
 
-    def addParameter( self, paramname ):
-        '''
+    def addParameter(self, paramname):
+        """
         Adds a parameter to the adjustment and returns its parameter number
-        '''
+        """
         self.parameters.append(paramname)
         self.nparam += 1
-        return self.nparam-1
+        return self.nparam - 1
 
-    def addParameterUpdate( self, updateFunc ):
-        '''
+    def addParameterUpdate(self, updateFunc):
+        """
         Function used to update parameters.  Adjustment residual calculation
         assumes that parameters are updated at each iteration, so that at final
         iteration residuals are not changed.
 
         The updateFunc should take as parameters the list of calculated
         parameter values, and return a boolean converged status
-        '''
+        """
         self.updateFuncs.append(updateFunc)
 
-    def setupStationCoordMapping( self ):
-        '''
+    def setupStationCoordMapping(self):
+        """
         Defines a mapping from station coordinates to parameters.
 
         Sets up a dictionary coordParamMapping from station id to a tuple of three values
@@ -1031,101 +1108,103 @@ class Adjustment( object ):
         routine will only set up mappings for stations not included in this 
         dictionary.
 
-        '''
+        """
 
         # Get a list of used stations - remove fixed stations from it
         # Result is a list of stations to adjust
 
-        usedStations=self.usedStations(includeFixed=False)
+        usedStations = self.usedStations(includeFixed=False)
 
-        mapping=self.coordParamMapping
+        mapping = self.coordParamMapping
 
-        adjustenu=self.options.adjustENU
-        axes=('east','north','up') if adjustenu else ('X','Y','Z')
+        adjustenu = self.options.adjustENU
+        axes = ("east", "north", "up") if adjustenu else ("X", "Y", "Z")
         for code in sorted(usedStations.keys()):
             if code in mapping:
                 continue
             if adjustenu:
-               station=self.stations.get(code)
-               prmxyz=station.enu()
+                station = self.stations.get(code)
+                prmxyz = station.enu()
             else:
-               prmxyz=np.identity(3)
-            prmnos=[self.addParameter(code+' '+axis) for axis in axes]
-            mapping[code]=(prmnos,prmxyz,True)
+                prmxyz = np.identity(3)
+            prmnos = [self.addParameter(code + " " + axis) for axis in axes]
+            mapping[code] = (prmnos, prmxyz, True)
 
-    # Update the station coordinates and return a parameter indicating the 
+    # Update the station coordinates and return a parameter indicating the
     # maximum coordinate change
 
-    def updateStationCoordParameters( self, paramValues ):
-        '''
+    def updateStationCoordParameters(self, paramValues):
+        """
         Applies the calculated updates to the coordinate parameters and
         calculates the maximum offset at the station.
-        '''
+        """
         if not self.solved:
             raise RuntimeError("Cannot update parameters if equations not solved")
-        maxoffset=0.0
-        maxcode=None
-        printoffsets=self.options.debugStationOffsets
-        for code,mapping in self.coordParamMapping.iteritems():
-            stn=self.stations.get(code)
-            xyz=stn.xyz()
+        maxoffset = 0.0
+        maxcode = None
+        printoffsets = self.options.debugStationOffsets
+        for code, mapping in self.coordParamMapping.items():
+            stn = self.stations.get(code)
+            xyz = stn.xyz()
             dxyz = paramValues[mapping[0]].dot(mapping[1])
             if printoffsets:
                 denu = stn.enu().dot(dxyz.T).T
-                self.writeDebugOutput("  {0} ENU change {1:.4f} {2:.4f} {3:.4f}\n".format(
-                    code,denu[0,0],denu[0,1],denu[0,2]))
+                self.writeDebugOutput(
+                    "  {0} ENU change {1:.4f} {2:.4f} {3:.4f}\n".format(
+                        code, denu[0, 0], denu[0, 1], denu[0, 2]
+                    )
+                )
             if len(mapping) > 2 and mapping[2]:
                 xyz += dxyz.reshape((3,))
                 stn.setXYZ(xyz)
-            offset=linalg.norm(dxyz)
+            offset = linalg.norm(dxyz)
             if offset > maxoffset:
-                maxoffset=offset
-                maxcode=code
-        return maxoffset,maxcode
+                maxoffset = offset
+                maxcode = code
+        return maxoffset, maxcode
 
-    def updateParameters( self, paramValues ):
-        '''
+    def updateParameters(self, paramValues):
+        """
         Function to update adjustment parameters based on the least squares solution
         vector paramValues.  Returns the maximum coordinate offset and the code of the
         corresponding station.
-        '''
-        converged=True
+        """
+        converged = True
         for update in self.updateFuncs:
             if not update(paramValues):
-                converged=False
-        coordUpdate,code=self.updateStationCoordParameters( paramValues )
+                converged = False
+        coordUpdate, code = self.updateStationCoordParameters(paramValues)
         if coordUpdate > self.options.convergenceTolerance:
-            converged=False
-        return converged,coordUpdate,code
+            converged = False
+        return converged, coordUpdate, code
 
-
-    def setupParameters( self ):
-        '''
+    def setupParameters(self):
+        """
         Function to set up adjustment parameters.  
         Parameters are added with addParameter(paramname), which returns
         the parameter row number in the adjustment.
         Note parameters also configured by the coordParamMapping dictionary 
         setupStationCoordMapping()
-        '''
+        """
         pass
 
-    def setupNormalEquations( self ):
+    def setupNormalEquations(self):
         self.initParameters()
-        self.runPluginFunction('setupParameters',runPrePostFunctions=True)
-        self.runPluginFunction('setupStationCoordMapping',reverse=True)
-        nprm=self.nparam
-        self.solved=0
-        self.N=np.zeros((nprm,nprm))
-        self.b=np.zeros((nprm,1))
-        self.ssr=0.0
-        self.nobs=0
+        self.runPluginFunction("setupParameters", runPrePostFunctions=True)
+        self.runPluginFunction("setupStationCoordMapping", reverse=True)
+        nprm = self.nparam
+        self.solved = 0
+        self.N = np.zeros((nprm, nprm))
+        self.b = np.zeros((nprm, 1))
+        self.ssr = 0.0
+        self.nobs = 0
         return nprm
 
-    def getStation( self, code ):
+    def getStation(self, code):
         return self.stations.get(code)
 
-    def calcStationOffsets( self, obs ):
-        '''
+    def calcStationOffsets(self, obs):
+        """
         Determines the offsets of stations that apply for a particular observation.
         Returns a station offset for the instrument and target station of the observation.
 
@@ -1148,166 +1227,178 @@ class Adjustment( object ):
 
         Subclasses can override for additional offsets.  Plugin offsets are added
         to form a total offset
-        '''
+        """
 
-        offsets=[]
+        offsets = []
         for o in obs.obsvalues:
-            offi=None
-            offt=None
+            offi = None
+            offt = None
             if o.insthgt is not None and o.insthgt != 0.0:
-                offi=self.getStation(o.inststn).genu()[2]*o.insthgt
+                offi = self.getStation(o.inststn).genu()[2] * o.insthgt
             if o.trgthgt is not None and o.trgthgt != 0.0:
-                offt=self.getStation(o.trgtstn).genu()[2]*o.trgthgt
-            offsets.append((Station.OFFSET_XYZ,offi,offt,None,None))
+                offt = self.getStation(o.trgtstn).genu()[2] * o.trgthgt
+            offsets.append((Station.OFFSET_XYZ, offi, offt, None, None))
         return offsets
 
-    def convertOffsetToXYZ( self, obsvalue, offset ):
-        offsettype=offset[0]
-        if offsettype==Station.OFFSET_XYZ:
+    def convertOffsetToXYZ(self, obsvalue, offset):
+        offsettype = offset[0]
+        if offsettype == Station.OFFSET_XYZ:
             return offset
-        result=[Station.OFFSET_XYZ,offset[1],offset[2],offset[3],offset[4]]
-        for i,stn in ((1,obsvalue.inststn),(2,obsvalue.trgtstn)):
-            offset=result[i]
+        result = [Station.OFFSET_XYZ, offset[1], offset[2], offset[3], offset[4]]
+        for i, stn in ((1, obsvalue.inststn), (2, obsvalue.trgtstn)):
+            offset = result[i]
             if offset is None:
                 continue
-            doffset=result[i+2]
-            if offsettype==Station.OFFSET_H:
-                offset=np.array((0.0,0.0,offset))
+            doffset = result[i + 2]
+            if offsettype == Station.OFFSET_H:
+                offset = np.array((0.0, 0.0, offset))
                 if doffset is not None:
-                    ddp=doffset[1]
-                    zero=np.zeros(ddp.shape)
-                    doffset=(doffset[0],np.array([zero,zero,ddp]).T)
-            stn=self.getStation(stn)
-            enu=stn.enu() if offsettype==Station.OFFSET_ENU else stn.genu()
-            offset=offset.dot(enu)
+                    ddp = doffset[1]
+                    zero = np.zeros(ddp.shape)
+                    doffset = (doffset[0], np.array([zero, zero, ddp]).T)
+            stn = self.getStation(stn)
+            enu = stn.enu() if offsettype == Station.OFFSET_ENU else stn.genu()
+            offset = offset.dot(enu)
             if doffset is not None:
-                doffset=(doffset[0],doffset[1].dot(enu))
-            result[i]=offset
-            result[i+2]=doffset
+                doffset = (doffset[0], doffset[1].dot(enu))
+            result[i] = offset
+            result[i + 2] = doffset
         return result
 
-    def compileStationOffsets( self, obs ):
-        offsets=None
-        for poffsets in self.runPluginFunction('calcStationOffsets',obs):
+    def compileStationOffsets(self, obs):
+        offsets = None
+        for poffsets in self.runPluginFunction("calcStationOffsets", obs):
             if poffsets is None:
                 continue
-            compiled=[]
-            for i,obsvalue in enumerate(obs.obsvalues):
-                poffset=self.convertOffsetToXYZ(obsvalue,poffsets[i])
+            compiled = []
+            for i, obsvalue in enumerate(obs.obsvalues):
+                poffset = self.convertOffsetToXYZ(obsvalue, poffsets[i])
                 if offsets is not None:
-                    offset=offsets[i]
-                    tpo,offi,offt,doffi,dofft=offset
-                    ptpo,poffi,pofft,dpoffi,dpofft=poffset
+                    offset = offsets[i]
+                    tpo, offi, offt, doffi, dofft = offset
+                    ptpo, poffi, pofft, dpoffi, dpofft = poffset
                     if poffi is not None:
                         if offi is not None:
-                            offi=np.add(offi,poffi)
+                            offi = np.add(offi, poffi)
                         else:
-                            offi=poffi
+                            offi = poffi
                     if pofft is not None:
                         if offt is not None:
-                            offt=np.add(offt,pofft)
+                            offt = np.add(offt, pofft)
                         else:
-                            offt=pofft
+                            offt = pofft
                     if dpoffi is not None:
                         if doffi is not None:
                             doffi[0].extend(dpoffi[0])
-                            doffi=(doffi[0],np.vstack((doffi[1],dpoffi[1])))
+                            doffi = (doffi[0], np.vstack((doffi[1], dpoffi[1])))
                         else:
-                            doffi=dpoffi
+                            doffi = dpoffi
                     if dpofft is not None:
                         if dofft is not None:
                             dofft[0].extend(dpofft[0])
-                            dofft=(dofft[0],np.vstack((dofft[1],dpofft[1])))
+                            dofft = (dofft[0], np.vstack((dofft[1], dpofft[1])))
                         else:
-                            dofft=dpofft
-                    poffset=(Station.OFFSET_XYZ,offi,offt,doffi,dofft)
+                            dofft = dpofft
+                    poffset = (Station.OFFSET_XYZ, offi, offt, doffi, dofft)
                 compiled.append(poffset)
-            offsets=compiled
+            offsets = compiled
         return offsets
 
-    def observationEquation( self, obs ):
-        '''
+    def observationEquation(self, obs):
+        """
         Forms the observation equations for an observation o, which may
         be an array of observation values
-        '''
-        refcoef=self.options.refractionCoefficient
-        obstype=obs.obstype
-        nval=obstype.nvalue
-        nrow=len(obs.obsvalues)*nval
-        obseqn=ObsEqn(nrow,self.nparam)
-        diagonal=True
+        """
+        refcoef = self.options.refractionCoefficient
+        obstype = obs.obstype
+        nval = obstype.nvalue
+        nrow = len(obs.obsvalues) * nval
+        obseqn = ObsEqn(nrow, self.nparam)
+        diagonal = True
         if obs.covariance is not None:
             obseqn.setCovar(obs.covariance)
-            diagonal=False
-        obsres=obseqn.obsres
-        obseq=obseqn.obseq
-        obscovar=obseqn.obscovar
+            diagonal = False
+        obsres = obseqn.obsres
+        obseq = obseqn.obseq
+        obscovar = obseqn.obscovar
 
-        offsets=self.compileStationOffsets( obs )
-        offsettype,offi,offt,doffi,dofft=Station.OFFSET_XYZ,None,None,None,None
+        offsets = self.compileStationOffsets(obs)
+        offsettype, offi, offt, doffi, dofft = (
+            Station.OFFSET_XYZ,
+            None,
+            None,
+            None,
+            None,
+        )
 
-        for i,o in enumerate(obs.obsvalues):
-            stf=self.stations.get(o.inststn)
+        for i, o in enumerate(obs.obsvalues):
+            stf = self.stations.get(o.inststn)
             if stf is None:
-                raise RuntimeError("Station "+o.inststn+" is not defined")
-            stt=None
+                raise RuntimeError("Station " + o.inststn + " is not defined")
+            stt = None
             if o.trgtstn is not None:
-                stt=self.stations.get(o.trgtstn)
+                stt = self.stations.get(o.trgtstn)
                 if stt is None:
-                    raise RuntimeError("Station "+o.trgtstn+" is not defined")
+                    raise RuntimeError("Station " + o.trgtstn + " is not defined")
             # Get XYZ offsets and differential with respect to parameters
             if offsets is not None:
-                offsettype,offi,offt,doffi,dofft=offsets[i]
+                offsettype, offi, offt, doffi, dofft = offsets[i]
 
             # Calculate the observed value and its dependence on XYZ coordinates
-            calcval,ddxyz0,ddxyz1=obstype.calcobs(
-                stf,trgtstn=stt,instofst=offi,trgtofst=offt,refcoef=refcoef,
-                ddxyz=True,offsettype=offsettype)
+            calcval, ddxyz0, ddxyz1 = obstype.calcobs(
+                stf,
+                trgtstn=stt,
+                instofst=offi,
+                trgtofst=offt,
+                refcoef=refcoef,
+                ddxyz=True,
+                offsettype=offsettype,
+            )
 
             # Set up the observation residual and covariance
-            i0=i*nval
-            i1=i0+nval
+            i0 = i * nval
+            i1 = i0 + nval
             if nval == 1:
-                obsres[i,0]=o.value-calcval
+                obsres[i, 0] = o.value - calcval
                 if diagonal:
-                    obscovar[i,0]=o.stderr*o.stderr
+                    obscovar[i, 0] = o.stderr * o.stderr
             else:
-                obsres[i0:i1,0]=np.array(o.value)-calcval
+                obsres[i0:i1, 0] = np.array(o.value) - calcval
 
             # Set up the coordinate parameters
-            mapping=self.coordParamMapping.get(o.inststn,None)
+            mapping = self.coordParamMapping.get(o.inststn, None)
             if mapping is not None:
-                obseq[i0:i1,mapping[0]]=mapping[1].dot(ddxyz0)
-            mapping=self.coordParamMapping.get(o.trgtstn,None)
+                obseq[i0:i1, mapping[0]] = mapping[1].dot(ddxyz0)
+            mapping = self.coordParamMapping.get(o.trgtstn, None)
             if mapping is not None:
-                obseq[i0:i1,mapping[0]]+=mapping[1].dot(ddxyz1)
+                obseq[i0:i1, mapping[0]] += mapping[1].dot(ddxyz1)
 
             # Set up the offset parameters
-            for stn,doff,dxyz in ((stf,doffi,ddxyz0),(stt,dofft,ddxyz1)):
+            for stn, doff, dxyz in ((stf, doffi, ddxyz0), (stt, dofft, ddxyz1)):
                 if doff is None:
                     continue
-                prms,dprm=doff
-                obseq[i0:i1,prms]=dprm.dot(dxyz)
+                prms, dprm = doff
+                obseq[i0:i1, prms] = dprm.dot(dxyz)
 
         # Need special handling for horizontal angles
 
-        if obstype.code == 'HA':
+        if obstype.code == "HA":
             assert diagonal
             # Round to multiple of 180.
-            obsres[:] = np.remainder(obsres-obsres[0]+180.0,360.0)-180.0
+            obsres[:] = np.remainder(obsres - obsres[0] + 180.0, 360.0) - 180.0
             # Remove weighted mean residual
-            wgt=1.0/obscovar
-            wgtsum=wgt.sum()
-            obsres -= (wgt.T.dot(obsres))/wgtsum
-            schreiber=np.ones((nrow,1))
+            wgt = 1.0 / obscovar
+            wgtsum = wgt.sum()
+            obsres -= (wgt.T.dot(obsres)) / wgtsum
+            schreiber = np.ones((nrow, 1))
             obseqn.setSchreiber(schreiber)
 
         # Handle 360 degree wrapping for azimuths
 
-        elif obstype.code == 'AZ':
-            obsres[:] = np.remainder(obsres+180.0,360.0)-180.0
+        elif obstype.code == "AZ":
+            obsres[:] = np.remainder(obsres + 180.0, 360.0) - 180.0
 
-        self.runPluginFunction('updateObservationEquation',obs,obseqn)
+        self.runPluginFunction("updateObservationEquation", obs, obseqn)
         return obseqn
 
     # Note: May be scope for simplification/optimisation here using more
@@ -1315,132 +1406,143 @@ class Adjustment( object ):
     # sparse matrix options for observation equations (and possibly normal
     # equations)
 
-    def sumObservation( self, obseqn ):
-        assert self.solved==0,"Cannot sum observations after they have been solved"
+    def sumObservation(self, obseqn):
+        assert self.solved == 0, "Cannot sum observations after they have been solved"
         if obseqn.diagonal:
-            weight=np.diag(1.0/obseqn.obscovar.flatten())
+            weight = np.diag(1.0 / obseqn.obscovar.flatten())
         else:
-            weight=linalg.inv(obseqn.obscovar)
-        A=obseqn.obseq
-        y=obseqn.obsres
+            weight = linalg.inv(obseqn.obscovar)
+        A = obseqn.obseq
+        y = obseqn.obsres
         self.N += A.T.dot(weight.dot(A))
         self.b += A.T.dot(weight.dot(y))
-        self.ssr += y.T.dot(weight.dot(y))[0,0]
+        self.ssr += y.T.dot(weight.dot(y))[0, 0]
         self.nobs += y.size
-        A2=obseqn.schreiber
+        A2 = obseqn.schreiber
         if A2 is not None:
-            ws=A2.T.dot(weight.dot(A2))
-            if ws.size==1:
-                ws=1.0/ws
+            ws = A2.T.dot(weight.dot(A2))
+            if ws.size == 1:
+                ws = 1.0 / ws
             else:
-                ws=np.linalg.inv(ws)
-            n12=A.T.dot(weight.dot(A2))
-            b2=A2.T.dot(weight.dot(y))
+                ws = np.linalg.inv(ws)
+            n12 = A.T.dot(weight.dot(A2))
+            b2 = A2.T.dot(weight.dot(y))
             self.N -= n12.dot(ws.dot(n12.T))
             self.b -= n12.dot(ws.dot(b2))
-            self.ssr -= b2.T.dot(ws.dot(b2))[0,0]
+            self.ssr -= b2.T.dot(ws.dot(b2))[0, 0]
             self.nobs -= A2.shape[1]
 
-    def covariance( self ):
-        '''
+    def covariance(self):
+        """
         Return the parameter covariance matrix
-        '''
-        assert self.solved > 0,"calcResiduals requires the equations to be solved"
-        if self.solved==1:
-            self.N=linalg.inv(self.N)
-            self.solved=2
+        """
+        assert self.solved > 0, "calcResiduals requires the equations to be solved"
+        if self.solved == 1:
+            self.N = linalg.inv(self.N)
+            self.solved = 2
         return self.N
 
-    def stationENUCovariance( self, code ):
-        '''
+    def stationENUCovariance(self, code):
+        """
         Return the ENU coordinate covariance matrix
-        '''
-        assert self.solved > 0,"calcResiduals requires the equations to be solved"
-        N=self.covariance()
-        mapping=self.coordParamMapping.get(code)
-        stn=self.stations.get(code)
+        """
+        assert self.solved > 0, "calcResiduals requires the equations to be solved"
+        N = self.covariance()
+        mapping = self.coordParamMapping.get(code)
+        stn = self.stations.get(code)
         if stn is None or mapping is None or len(mapping[0]) == 0:
-            return np.zeros((3,3))
-        obseq=np.zeros((self.nparam,3))
-        obseq[mapping[0]]=mapping[1]
-        cvr=obseq.T.dot(N.dot(obseq))
-        enu=stn.enu()
-        cvrenu=enu.dot((enu.dot(cvr)).T)
+            return np.zeros((3, 3))
+        obseq = np.zeros((self.nparam, 3))
+        obseq[mapping[0]] = mapping[1]
+        cvr = obseq.T.dot(N.dot(obseq))
+        enu = stn.enu()
+        cvrenu = enu.dot((enu.dot(cvr)).T)
         return cvrenu
 
-    def calcResidual( self, obs ):
-        '''
+    def calcResidual(self, obs):
+        """
         Calculate the observation residuals. Returns 
 
         resvalue, rescovar
-        '''
-        assert self.solved > 0,"calcResiduals requires the equations to be solved"
-        N=self.covariance()
-        obseqn=self.observationEquation(obs)
-        A=obseqn.obseq
-        calccovar=A.dot(N.dot(A.T))
+        """
+        assert self.solved > 0, "calcResiduals requires the equations to be solved"
+        N = self.covariance()
+        obseqn = self.observationEquation(obs)
+        A = obseqn.obseq
+        calccovar = A.dot(N.dot(A.T))
         # Apply affect of Schreiber equations to covariance matrix...?
-        A2=obseqn.schreiber
+        A2 = obseqn.schreiber
         if A2 is not None:
             if obseqn.diagonal:
-                wda2=(1.0/obseqn.obscovar)*A2
+                wda2 = (1.0 / obseqn.obscovar) * A2
             else:
-                wda2=linalg.solve(obseqn.obscvr,A2)
+                wda2 = linalg.solve(obseqn.obscvr, A2)
 
-            ws=A2.T.dot(wda2)
-            if ws.size==1:
-                ws=1.0/ws
+            ws = A2.T.dot(wda2)
+            if ws.size == 1:
+                ws = 1.0 / ws
             else:
-                ws=np.linalg.inv(ws)
-            n12=A.T.dot(wda2)
-            u12=n12.dot(ws)
-            tmp1=u12.T.dot(N)
-            tmp2=A.dot(tmp1.T).dot(A2.T)
+                ws = np.linalg.inv(ws)
+            n12 = A.T.dot(wda2)
+            u12 = n12.dot(ws)
+            tmp1 = u12.T.dot(N)
+            tmp2 = A.dot(tmp1.T).dot(A2.T)
             calccovar -= tmp2
             calccovar -= tmp2.T
             calccovar += A2.dot(ws.dot(A2.T))
             calccovar += A2.dot(tmp1.dot(u12)).dot(A2.T)
-            
-        rescovar=np.diag(obseqn.obscovar.flatten()) if obseqn.diagonal else obseqn.obscovar
-        rescovar-=calccovar
-        resvalue=obseqn.obsres
+
+        rescovar = (
+            np.diag(obseqn.obscovar.flatten()) if obseqn.diagonal else obseqn.obscovar
+        )
+        rescovar -= calccovar
+        resvalue = obseqn.obsres
 
         return resvalue, rescovar
 
-
-    def writeObservationEquations(self,compactRows=False):
-        '''
+    def writeObservationEquations(self, compactRows=False):
+        """
         Debugging option to print observation equations
-        '''
+        """
         self.setupNormalEquations()
         self.writeDebugOutput("\nParameters:\n")
         for p in self.parameters:
             self.writeDebugOutput("    {0}\n".format(p))
         self.writeDebugOutput("\nObservation Equations:\n")
         for o in self.observations:
-            ov=o.obsvalues[0]
-            self.writeDebugOutput("\nObservation: {0} from {1} to {2}{3}\n".format(
-                o.obstype.code,ov.inststn,ov.trgtstn,' ...' if len(o.obsvalues) > 1 else ''))
-            oe=self.observationEquation(o)
-            factor=1.0
-            offset=0
-            # Convert to compatible format with SNAP for checking 
+            ov = o.obsvalues[0]
+            self.writeDebugOutput(
+                "\nObservation: {0} from {1} to {2}{3}\n".format(
+                    o.obstype.code,
+                    ov.inststn,
+                    ov.trgtstn,
+                    " ..." if len(o.obsvalues) > 1 else "",
+                )
+            )
+            oe = self.observationEquation(o)
+            factor = 1.0
+            offset = 0
+            # Convert to compatible format with SNAP for checking
             # (radians, 0 offset for first HA residuals)
-            if o.obstype.code in ('AZ','ZD','HA'):
-                factor=math.radians(1)
-            if o.obstype.code == 'HA':
-                offset=oe.obsres[0]
-            self.writeDebugOutput("  ObsRes: {0}\n".format((oe.obsres-offset)*factor))
-            self.writeDebugOutput("  ObsEq:  {0}\n".format(oe.obseq*factor))
-            self.writeDebugOutput("  ObsCvr: {0}\n".format(oe.obscovar*factor*factor))
+            if o.obstype.code in ("AZ", "ZD", "HA"):
+                factor = math.radians(1)
+            if o.obstype.code == "HA":
+                offset = oe.obsres[0]
+            self.writeDebugOutput(
+                "  ObsRes: {0}\n".format((oe.obsres - offset) * factor)
+            )
+            self.writeDebugOutput("  ObsEq:  {0}\n".format(oe.obseq * factor))
+            self.writeDebugOutput(
+                "  ObsCvr: {0}\n".format(oe.obscovar * factor * factor)
+            )
             if oe.schreiber is not None:
                 self.writeDebugOutput("  Schrb: {0}\n".format(oe.schreiber))
 
-    def observationEquations( self ):
+    def observationEquations(self):
         for obs in self.observations:
             yield self.observationEquation(obs)
 
-    def sumNormalEquations( self ):
+    def sumNormalEquations(self):
         for oe in self.observationEquations():
             self.sumObservation(oe)
         if len(self.options.floatStations) > 0:
@@ -1448,83 +1550,92 @@ class Adjustment( object ):
 
     def sumFloatStations(self):
         # Sum float stations if requested...
-        # Create a GX observation from the station coordinates. 
-        # Note that if there is no original coordinate then the 
+        # Create a GX observation from the station coordinates.
+        # Note that if there is no original coordinate then the
         # float coordinate changes at each iteration, so the
         # solution will not converge quickly!
-        func=self._useStationFunc(self.options.floatStations,None)
+        func = self._useStationFunc(self.options.floatStations, None)
         for code in self.coordParamMapping:
-            params=self.coordParamMapping[code][0]
+            params = self.coordParamMapping[code][0]
             if len(params) == 0:
                 continue
-            float=func(code)
+            float = func(code)
             if float is None:
                 continue
             if self.options.debugFloatStations:
                 self.writeDebugOutput(
-                    "  Floating {0}: {1:.4f} {2:.4f}\n".format(code,float[0],float[1]))
-            enuerr=np.diag((float[0],float[0],float[1]))
-            enuerr=enuerr*enuerr
-            stn=self.stations.get(code)
-            code=stn.code()
-            xyz=self.originalXyz.get(code)
+                    "  Floating {0}: {1:.4f} {2:.4f}\n".format(code, float[0], float[1])
+                )
+            enuerr = np.diag((float[0], float[0], float[1]))
+            enuerr = enuerr * enuerr
+            stn = self.stations.get(code)
+            code = stn.code()
+            xyz = self.originalXyz.get(code)
             if xyz is None:
                 if self.options.debugFloatStations:
-                    self.writeDebugOutput("  Using transient coord for float of {0}\n".format(code))
-                xyz=stn.xyz()
-            xyz=np.array(xyz)
-            enu=stn.enu()
-            cvr=enu.T.dot(enuerr.dot(enu))
-            obs=Observation('GX',covariance=cvr)
-            obs.addObservation(ObservationValue(code,value=xyz))
-            oe=self.observationEquation(obs)
+                    self.writeDebugOutput(
+                        "  Using transient coord for float of {0}\n".format(code)
+                    )
+                xyz = stn.xyz()
+            xyz = np.array(xyz)
+            enu = stn.enu()
+            cvr = enu.T.dot(enuerr.dot(enu))
+            obs = Observation("GX", covariance=cvr)
+            obs.addObservation(ObservationValue(code, value=xyz))
+            oe = self.observationEquation(obs)
             self.sumObservation(oe)
 
-    def solveEquations( self ):
+    def solveEquations(self):
         try:
-            self.x=linalg.solve(self.N, self.b).flatten()
-            self.solved=1
+            self.x = linalg.solve(self.N, self.b).flatten()
+            self.solved = 1
         except linalg.LinAlgError:
-            self.solved=-1
+            self.solved = -1
             raise SingularityError()
 
-    def runOneIteration( self ):
+    def runOneIteration(self):
         self.setupNormalEquations()
-        self.runPluginFunction('sumNormalEquations')
+        self.runPluginFunction("sumNormalEquations")
         self.solveEquations()
-        self.dof=self.nobs-self.nparam
-        self.seu=math.sqrt(self.ssr/self.dof) if self.dof > 0 else 1.0
-        return self.updateParameters( self.x )
+        self.dof = self.nobs - self.nparam
+        self.seu = math.sqrt(self.ssr / self.dof) if self.dof > 0 else 1.0
+        return self.updateParameters(self.x)
 
-    def writeObservationSummary( self ):
+    def writeObservationSummary(self):
         self.write("\nObservation summary:\n")
-        counts=self.countObservations()
-        for obstype in sorted(counts.keys(),key=lambda x:x.code):
-            count=counts[obstype]
-            suffix=''
-            if obstype.code == 'HA':
-                suffix=' in {0} rounds'.format(count[0])
-            self.write("  {0} {1} observations{2}\n".format(count[1],obstype.name,suffix))
-        self.write("  Using refraction coefficient {0:.3f}\n".format(self.options.refractionCoefficient)) 
+        counts = self.countObservations()
+        for obstype in sorted(list(counts.keys()), key=lambda x: x.code):
+            count = counts[obstype]
+            suffix = ""
+            if obstype.code == "HA":
+                suffix = " in {0} rounds".format(count[0])
+            self.write(
+                "  {0} {1} observations{2}\n".format(count[1], obstype.name, suffix)
+            )
+        self.write(
+            "  Using refraction coefficient {0:.3f}\n".format(
+                self.options.refractionCoefficient
+            )
+        )
 
-    def residuals( self ):
-        '''
+    def residuals(self):
+        """
         Iterator function to return the observations and residuals.  At each iteration 
         returns an observation, residual vector, and residual covariance vector.
-        '''
+        """
         for obs in self.observations:
-            res,rescovar=self.calcResidual(obs)
-            yield obs,res,rescovar
- 
-    def writeSummaryStats( self ):
+            res, rescovar = self.calcResidual(obs)
+            yield obs, res, rescovar
+
+    def writeSummaryStats(self):
         self.write("\nSum of squared residuals:     {0:.6f}\n".format(self.ssr))
         self.write("Number of parameters:         {0}\n".format(self.nparam))
         self.write("Number of observations:       {0}\n".format(self.nobs))
         self.write("Degrees of freedom:           {0}\n".format(self.dof))
         self.write("Standard error of unit weight {0:.4f}\n".format(self.seu))
 
-    def calcResidualSummary( self, keyfunc=None ):
-        '''
+    def calcResidualSummary(self, keyfunc=None):
+        """
         Returns a summary of observation residuals classified by key
         which defaults to the observation type code.  Otherwise should be
         a function taking an observation as a parameter and returning key
@@ -1539,92 +1650,116 @@ class Adjustment( object ):
 
         This may result in changes in numbers of observations if 
         they are reweighted in adjustments.
-        '''
+        """
         if keyfunc is None:
-            keyfunc=lambda obs: obs.obstype.code
+            keyfunc = lambda obs: obs.obstype.code
 
-        obsTypeSummary={}
-        for obs,res,rescvr in self.residuals():
-            key=keyfunc(obs)
+        obsTypeSummary = {}
+        for obs, res, rescvr in self.residuals():
+            key = keyfunc(obs)
             if key not in obsTypeSummary:
-                obsTypeSummary[key]=[0.0,0]
-            summary=obsTypeSummary[key]
+                obsTypeSummary[key] = [0.0, 0]
+            summary = obsTypeSummary[key]
 
-            # What follows is not strictly rigorous ... but I think is indicative of 
+            # What follows is not strictly rigorous ... but I think is indicative of
             # magnitude of residuals
 
             if obs.covariance is not None:
-                tol=1.0e-12 # Random!
-                cvrinv=linalg.pinv(rescvr,tol)
-                rank=linalg.matrix_rank(rescvr,tol)
-                summary[0] += res.T.dot(cvrinv.dot(res))[0,0]
+                tol = 1.0e-12  # Random!
+                cvrinv = linalg.pinv(rescvr, tol)
+                rank = linalg.matrix_rank(rescvr, tol)
+                summary[0] += res.T.dot(cvrinv.dot(res))[0, 0]
                 summary[1] += rank
 
             elif obs.obstype.nvalue == 1:
-                for obsv,resv,rescvr in zip(obs.obsvalues,res.flatten(),rescvr.diagonal().flatten()):
-                    stderr=obsv.stderr
-                    if rescvr >= stderr*stderr*1.0e-10:
-                        summary[0] += resv*resv/rescvr
+                for obsv, resv, rescvr in zip(
+                    obs.obsvalues, res.flatten(), rescvr.diagonal().flatten()
+                ):
+                    stderr = obsv.stderr
+                    if rescvr >= stderr * stderr * 1.0e-10:
+                        summary[0] += resv * resv / rescvr
                         summary[1] += 1
             else:
                 # Currently not handling this (vector data, no covariance)..
-                pass 
+                pass
         return obsTypeSummary
 
-    def writeResidualSummary( self, keyfunc=None, title=None ):
-        summary=self.calcResidualSummary(keyfunc)
+    def writeResidualSummary(self, keyfunc=None, title=None):
+        summary = self.calcResidualSummary(keyfunc)
         if title is None:
-            title='Summary of residuals'
-            self.write("\n{0}\n\n  {1:<10s} {2:4s} {3:8s}\n"
-                       .format(title,'Type','NRes','  RMS'))
+            title = "Summary of residuals"
+            self.write(
+                "\n{0}\n\n  {1:<10s} {2:4s} {3:8s}\n".format(
+                    title, "Type", "NRes", "  RMS"
+                )
+            )
         for key in sorted(summary.keys()):
-            ssr,nres=summary[key]
-            rms=math.sqrt(ssr/nres) if nres > 0 else 1.0
-            self.write("  {0:<10} {1:4d} {2:8.4f}\n".format(key,nres,rms))
+            ssr, nres = summary[key]
+            rms = math.sqrt(ssr / nres) if nres > 0 else 1.0
+            self.write("  {0:<10} {1:4d} {2:8.4f}\n".format(key, nres, rms))
 
-    def writeResidualCsv( self, csvfile, options={} ):
-        '''
+    def writeResidualCsv(self, csvfile, options={}):
+        """
         Dumps residuals of scalar observations to a CSV file
-        '''
+        """
         import csv
 
-        attributes=[]
-        if 'attributes' in options:
-            attdef=options['attributes']
-            attributes=[x for x in re.split(r'\W+',attdef) if len(x) > 0]
+        attributes = []
+        if "attributes" in options:
+            attdef = options["attributes"]
+            attributes = [x for x in re.split(r"\W+", attdef) if len(x) > 0]
 
-        wkt='wkt' in options
+        wkt = "wkt" in options
 
-        with open(csvfile,"wb") as csvf:
-            csvw=csv.writer(csvf)
-            cols=['fromstn','tostn','fromhgt','tohgt','obstype','obsset','obsdate',
-                  'value','error','calcval','residual','reserr','stdres']
+        with open(csvfile, "w") as csvf:
+            csvw = csv.writer(csvf)
+            cols = [
+                "fromstn",
+                "tostn",
+                "fromhgt",
+                "tohgt",
+                "obstype",
+                "obsset",
+                "obsdate",
+                "value",
+                "error",
+                "calcval",
+                "residual",
+                "reserr",
+                "stdres",
+            ]
             cols.extend(attributes)
             if wkt:
-                cols.append('wkt')
+                cols.append("wkt")
             csvw.writerow(cols)
-            lastset=0
-            vformat="{0:.6f}"
-            eformat="{0:.6f}"
-            seformat="{0:.4f}"
+            lastset = 0
+            vformat = "{0:.6f}"
+            eformat = "{0:.6f}"
+            seformat = "{0:.4f}"
 
-            for obs,res,rescvr in self.residuals():
+            for obs, res, rescvr in self.residuals():
                 if obs.obstype.nvalue > 1:
                     continue
-                set=None
+                set = None
                 if len(obs.obsvalues) > 0:
                     lastset += 1
-                    set=lastset
-                obsdate=obs.obsdate.strftime("%Y-%m-%d %H:%M:%S") if obs.obsdate is not None else "" 
+                    set = lastset
+                obsdate = (
+                    obs.obsdate.strftime("%Y-%m-%d %H:%M:%S")
+                    if obs.obsdate is not None
+                    else ""
+                )
 
-                for obsv,resv,rescvr in zip(obs.obsvalues,res.flatten(),rescvr.diagonal().flatten()):
-                    stderr=obsv.stderr
-                    if rescvr >= stderr*stderr*1.0e-10:
-                        reserr=math.sqrt(rescvr)
+                for obsv, resv, rescvr in zip(
+                    obs.obsvalues, res.flatten(), rescvr.diagonal().flatten()
+                ):
+                    stderr = obsv.stderr
+                    if rescvr >= stderr * stderr * 1.0e-10:
+                        reserr = math.sqrt(rescvr)
                     else:
-                        reserr=None
+                        reserr = None
 
-                    data=[
+                    data = [
                         obsv.inststn,
                         obsv.trgtstn,
                         obsv.insthgt,
@@ -1634,158 +1769,177 @@ class Adjustment( object ):
                         obsdate,
                         vformat.format(obsv.value),
                         eformat.format(stderr),
-                        vformat.format(obsv.value-resv),
+                        vformat.format(obsv.value - resv),
                         vformat.format(resv),
                         eformat.format(reserr) if reserr is not None else None,
-                        seformat.format(abs(resv/reserr)) if reserr is not None else None
-                        ]
+                        seformat.format(abs(resv / reserr))
+                        if reserr is not None
+                        else None,
+                    ]
                     data.extend([obsv.attributes.get(a) for a in attributes])
                     if wkt:
-                        obswkt=''
+                        obswkt = ""
                         try:
-                            llh0=self.stations.get(obsv.inststn).llh()
+                            llh0 = self.stations.get(obsv.inststn).llh()
                             if obsv.trgtstn is not None:
-                                llh1=self.stations.get(obsv.trgtstn).llh()
-                                obswkt='LINESTRING Z({0:.9f} {1:.9f} {2:.4f},{3:.9f} {4:.9f} {5:.4f})'.format(
-                                    llh0[0],llh0[1],llh0[2],llh1[0],llh1[1],llh1[2])
+                                llh1 = self.stations.get(obsv.trgtstn).llh()
+                                obswkt = "LINESTRING Z({0:.9f} {1:.9f} {2:.4f},{3:.9f} {4:.9f} {5:.4f})".format(
+                                    llh0[0], llh0[1], llh0[2], llh1[0], llh1[1], llh1[2]
+                                )
                             else:
-                                obswkt='POINT Z({0:.9f} {1:.9f} {2:.4f})'.format(
-                                    llh0[0],llh0[1],llh0[2])
+                                obswkt = "POINT Z({0:.9f} {1:.9f} {2:.4f})".format(
+                                    llh0[0], llh0[1], llh0[2]
+                                )
                         except:
-                            obswkt=None
+                            obswkt = None
                         data.append(obswkt)
                     csvw.writerow(data)
 
-    def writeSinex( self ):
+    def writeSinex(self):
         if self.options.adjustENU:
             raise RuntimeError("Cannot write SINEX file for ENU adjustment")
-        sinexIds=self.options.sinexIds
-        marks=sorted(sinexIds.keys())
+        sinexIds = self.options.sinexIds
+        marks = sorted(sinexIds.keys())
         if len(marks) == 0:
             return
-        coords=[]
-        mapping=self.coordParamMapping
+        coords = []
+        mapping = self.coordParamMapping
         for m in marks:
             if m in mapping:
-                prms,obseq,update=mapping[m]
-                if obseq.shape != (3,3) or np.any(obseq != np.identity(3)):
-                    raise RuntimeError("Sinex mark "+m+" XYZ coordinates are not adjustment parameters")
-                xyz=self.stations.get(m).xyz()
-                coords.append((xyz,list(prms)))
+                prms, obseq, update = mapping[m]
+                if obseq.shape != (3, 3) or np.any(obseq != np.identity(3)):
+                    raise RuntimeError(
+                        "Sinex mark "
+                        + m
+                        + " XYZ coordinates are not adjustment parameters"
+                    )
+                xyz = self.stations.get(m).xyz()
+                coords.append((xyz, list(prms)))
             else:
-                raise RuntimeError("Sinex mark "+m+" is not defined in the adjustment")
+                raise RuntimeError(
+                    "Sinex mark " + m + " is not defined in the adjustment"
+                )
 
-        startdate=None
-        enddate=None
+        startdate = None
+        enddate = None
         for o in self.observations:
             if o.obsdate is not None:
                 if startdate is None:
-                    startdate=o.obsdate
-                    enddate=o.obsdate
+                    startdate = o.obsdate
+                    enddate = o.obsdate
                 elif startdate > o.obsdate:
-                    startdate=o.obsdate
+                    startdate = o.obsdate
                 elif enddate < o.obsdate:
-                    enddate=o.obsdate
-        
+                    enddate = o.obsdate
+
         from LINZ.Geodetic import Sinex
-        with Sinex.Writer( self.options.sinexOutputFile ) as snx:
+
+        with Sinex.Writer(self.options.sinexOutputFile) as snx:
             snx.addFileInfo(software=self.softwareName)
-            snx.addFileInfo( **self.options.sinexHeaders )
+            snx.addFileInfo(**self.options.sinexHeaders)
             if startdate is not None:
-                snx.setObsDateRange(startdate,enddate)
-            snx.setSolutionStatistics(self.seu**2,self.ssr,self.nobs,self.nparam)
+                snx.setObsDateRange(startdate, enddate)
+            snx.setSolutionStatistics(self.seu ** 2, self.ssr, self.nobs, self.nparam)
 
-            for m,c in zip(marks,coords):
-                snxid=sinexIds[m]
-                snx.addMark(m,**snxid)
-                snx.addSolution(m,c[0],c[1])
+            for m, c in zip(marks, coords):
+                snxid = sinexIds[m]
+                snx.addMark(m, **snxid)
+                snx.addSolution(m, c[0], c[1])
 
-            snx.setCovariance( self.covariance(), self.seu**2 )
+            snx.setCovariance(self.covariance(), self.seu ** 2)
 
-        
-    def _getExtraStationDataFunc( self ):
-        writeCovar=self.options.outputStationCovariances
-        writeEllipse=self.options.outputStationErrorEllipses
-        writeOffsets=self.options.outputStationOffsets
+    def _getExtraStationDataFunc(self):
+        writeCovar = self.options.outputStationCovariances
+        writeEllipse = self.options.outputStationErrorEllipses
+        writeOffsets = self.options.outputStationOffsets
         if not writeCovar and not writeEllipse and not writeOffsets:
             return None
-        columns=[]
+        columns = []
         if writeCovar:
-            columns.extend(('stderr_e','stderr_n','stderr_u','corr_en','corr_eu','corr_nu'))
+            columns.extend(
+                ("stderr_e", "stderr_n", "stderr_u", "corr_en", "corr_eu", "corr_nu")
+            )
         if writeEllipse:
-            columns.extend(('maxerr_h','minerr_h','azmaxerr'))
+            columns.extend(("maxerr_h", "minerr_h", "azmaxerr"))
             if not writeCovar:
-                columns.extend(('stderr_u',))
+                columns.extend(("stderr_u",))
         if writeOffsets:
-            columns.extend(('offset_e','offset_n','offset_u'))
+            columns.extend(("offset_e", "offset_n", "offset_u"))
 
         def func(code):
-            if code is None: 
+            if code is None:
                 return columns
-            data={}
+            data = {}
             if writeCovar or writeEllipse:
-                cvrenu=self.stationENUCovariance( code )
-                stderr=np.sqrt(cvrenu.diagonal())
-                div=stderr*stderr.reshape((3,1))
-                data['stderr_e']=stderr[0]
-                data['stderr_n']=stderr[1]
-                data['stderr_u']=stderr[2]
-                data['corr_en']=cvrenu[0,1]/div[0,1] if div[0,1] > 0.0 else 0.0
-                data['corr_eu']=cvrenu[0,2]/div[0,2] if div[0,2] > 0.0 else 0.0
-                data['corr_nu']=cvrenu[1,2]/div[1,2] if div[1,2] > 0.0 else 0.0
+                cvrenu = self.stationENUCovariance(code)
+                stderr = np.sqrt(cvrenu.diagonal())
+                div = stderr * stderr.reshape((3, 1))
+                data["stderr_e"] = stderr[0]
+                data["stderr_n"] = stderr[1]
+                data["stderr_u"] = stderr[2]
+                data["corr_en"] = cvrenu[0, 1] / div[0, 1] if div[0, 1] > 0.0 else 0.0
+                data["corr_eu"] = cvrenu[0, 2] / div[0, 2] if div[0, 2] > 0.0 else 0.0
+                data["corr_nu"] = cvrenu[1, 2] / div[1, 2] if div[1, 2] > 0.0 else 0.0
                 if writeEllipse:
-                    v1=(cvrenu[1,1]+cvrenu[0,0])/2.0
-                    v2=(cvrenu[1,1]-cvrenu[0,0])/2.0
-                    v3=cvrenu[0,1]
-                    v4=math.sqrt(v2*v2+v3*v3)
-                    azmax=math.degrees(math.atan2(v3,v2)/2.0) if v4 > 0.0 else 0.0
+                    v1 = (cvrenu[1, 1] + cvrenu[0, 0]) / 2.0
+                    v2 = (cvrenu[1, 1] - cvrenu[0, 0]) / 2.0
+                    v3 = cvrenu[0, 1]
+                    v4 = math.sqrt(v2 * v2 + v3 * v3)
+                    azmax = math.degrees(math.atan2(v3, v2) / 2.0) if v4 > 0.0 else 0.0
                     if azmax < 0.0:
                         azmax += 180.0
-                    emax=math.sqrt(max(0.0,v1+v4))
-                    emin=math.sqrt(max(0.0,v1-v4))
-                    data['maxerr_h']=emax
-                    data['minerr_h']=emin
-                    data['azmaxerr']=azmax
+                    emax = math.sqrt(max(0.0, v1 + v4))
+                    emin = math.sqrt(max(0.0, v1 - v4))
+                    data["maxerr_h"] = emax
+                    data["minerr_h"] = emin
+                    data["azmaxerr"] = azmax
             if writeOffsets:
                 if code in self.originalXyz:
-                    stn=self.stations.get(code)
-                    offset=stn.xyz()-self.originalXyz[code]
-                    offset=stn.enu().dot(offset)
-                    data['offset_e']=offset[0]
-                    data['offset_n']=offset[1]
-                    data['offset_u']=offset[2]
+                    stn = self.stations.get(code)
+                    offset = stn.xyz() - self.originalXyz[code]
+                    offset = stn.enu().dot(offset)
+                    data["offset_e"] = offset[0]
+                    data["offset_n"] = offset[1]
+                    data["offset_u"] = offset[2]
             for c in data:
-                data[c]="{0:.5f}".format(data[c])
+                data[c] = "{0:.5f}".format(data[c])
 
             return [data.get(c) for c in columns]
 
         return func
 
-    def _getCoordinateCovariance( self, code ):
+    def _getCoordinateCovariance(self, code):
         if code is None:
-            return 
-        cvrenu=self.stationENUCovariance( code )
-        stderr=np.sqrt(cvrenu.diagonal())
-        div=stderr*stderr.reshape((3,1))
-        return ["{0:.4f}".format(x) for x in 
-                (stderr[0],stderr[1],stderr[2],
-                cvrenu[0,1]/div[0,1] if div[0,1] > 0.0 else 0.0,
-                cvrenu[0,2]/div[0,2] if div[0,2] > 0.0 else 0.0,
-                cvrenu[1,2]/div[1,2] if div[1,2] > 0.0 else 0.0)]
+            return
+        cvrenu = self.stationENUCovariance(code)
+        stderr = np.sqrt(cvrenu.diagonal())
+        div = stderr * stderr.reshape((3, 1))
+        return [
+            "{0:.4f}".format(x)
+            for x in (
+                stderr[0],
+                stderr[1],
+                stderr[2],
+                cvrenu[0, 1] / div[0, 1] if div[0, 1] > 0.0 else 0.0,
+                cvrenu[0, 2] / div[0, 2] if div[0, 2] > 0.0 else 0.0,
+                cvrenu[1, 2] / div[1, 2] if div[1, 2] > 0.0 else 0.0,
+            )
+        ]
 
-    def writeStatsJson( self, filename ):
+    def writeStatsJson(self, filename):
         import json
-        stats={
-            'nobs': self.nobs,
-            'nparam': self.nparam,
-            'ssr': self.ssr,
-            'dof': self.dof,
-            'seu': self.seu
-            }   
-        with open(filename,'w') as jf:
-            jf.write(json.dumps(stats,indent=4,sort_keys=True))
 
-    def writeOutputFiles( self ):
+        stats = {
+            "nobs": self.nobs,
+            "nparam": self.nparam,
+            "ssr": self.ssr,
+            "dof": self.dof,
+            "seu": self.seu,
+        }
+        with open(filename, "w") as jf:
+            jf.write(json.dumps(stats, indent=4, sort_keys=True))
+
+    def writeOutputFiles(self):
         if self.options.outputStatsFile is not None:
             try:
                 self.writeStatsJson(self.options.outputStatsFile)
@@ -1793,75 +1947,83 @@ class Adjustment( object ):
                 pass
 
         if self.options.outputResidualFile is not None:
-            self.writeResidualCsv(self.options.outputResidualFile,self.options.outputResidualFileOptions)
+            self.writeResidualCsv(
+                self.options.outputResidualFile, self.options.outputResidualFileOptions
+            )
 
         if self.options.outputStationFile is not None:
-            self.stations.writeCsv(self.options.outputStationFile,
-                                   geodetic=self.options.outputStationFileGeodetic,
-                                   extradata=self._getExtraStationDataFunc())
+            self.stations.writeCsv(
+                self.options.outputStationFile,
+                geodetic=self.options.outputStationFileGeodetic,
+                extradata=self._getExtraStationDataFunc(),
+            )
         if self.options.sinexOutputFile:
             self.writeSinex()
 
-
-    def setup( self ):
+    def setup(self):
         pass
 
-    def handleMissingStations( self ):
+    def handleMissingStations(self):
         # Deal with missing stations
-        options=self.options
-        missing=self.missingStationList()
+        options = self.options
+        missing = self.missingStationList()
         if len(missing) > 0:
             if options.ignoreMissingStations:
                 self.write("Ignoring missing stations:\n")
             else:
                 self.write("Coordinates not available for stations:\n")
-            for use,stn in missing:
+            for use, stn in missing:
                 self.write("  {0}\n".format(stn))
             if options.ignoreMissingStations:
                 self.filterObsByStation(missing)
             else:
-                raise MissingStationError("Coordinates not available for {0} stations\n"
-                                          .format(len(missing)))
+                raise MissingStationError(
+                    "Coordinates not available for {0} stations\n".format(len(missing))
+                )
 
-    def calculateSolution( self ):
-        options=self.options
+    def calculateSolution(self):
+        options = self.options
 
         self.setupNormalEquations()
         self.write("\nCalculating {0} parameters\n".format(self.nparam))
 
         if self.options.debugObservationEquations:
-           self.writeObservationEquations()
+            self.writeObservationEquations()
 
-        converged=True
+        converged = True
         for i in range(options.maxIterations):
-            converged,coordUpdate,code=self.runOneIteration()
-            self.write("Iteration {0}: max coord change {1:.4f}m at {2}\n".format(i+1,coordUpdate,code))
-            if converged and i >= options.minIterations-1 :
+            converged, coordUpdate, code = self.runOneIteration()
+            self.write(
+                "Iteration {0}: max coord change {1:.4f}m at {2}\n".format(
+                    i + 1, coordUpdate, code
+                )
+            )
+            if converged and i >= options.minIterations - 1:
                 break
 
         if not converged:
-            raise ConvergenceError('Adjustment failed to converge')
+            raise ConvergenceError("Adjustment failed to converge")
 
     def report(self):
         self.writeSummaryStats()
         self.writeResidualSummary()
 
-    def runSetup( self ):
+    def runSetup(self):
         self.loadDataFiles()
         if self.options.verbose:
             self.writeObservationSummary()
-        self.runPluginFunction('setup',runPrePostFunctions=True)
+        self.runPluginFunction("setup", runPrePostFunctions=True)
         self.handleMissingStations()
         self.setupNormalEquations()
 
     def runCalculateSolution(self):
-        self.runPluginFunction('calculateSolution',firstOnly=True,reverse=True)
+        self.runPluginFunction("calculateSolution", firstOnly=True, reverse=True)
 
     def runOutputs(self):
-        self.runPluginFunction('report')
-        self.runPluginFunction('writeOutputFiles')
+        self.runPluginFunction("report")
+        self.runPluginFunction("writeOutputFiles")
 
-    def run( self ):
+    def run(self):
         self.runSetup()
         try:
             self.runCalculateSolution()
@@ -1869,24 +2031,38 @@ class Adjustment( object ):
             self.runOutputs()
 
     @staticmethod
-    def main(plugins=None,software=None):
-        '''
+    def main(plugins=None, software=None):
+        """
         Main function to run the adjustment
 
         Optionally can take a list of plugin classes 
-        '''
+        """
         import argparse
         import os.path
-        parser=argparse.ArgumentParser(description="Adjust network")
-        parser.add_argument('config_file',help="Adjustment definition file")
-        parser.add_argument('output_file',nargs='?',help="Output file - default is standard output")
-        parser.add_argument('-r','--residual_file',help="Residual CSV file")
-        parser.add_argument('-s','--output-coordinate-file',help="Output station CSV file")
-        parser.add_argument('-v','--verbose',action='store_true',help="Verbose output")
-        parser.add_argument('-c','--create',action='store_true',help="Create an example adjustment configuration file")
-        parser.add_argument('-p','--plugin',help='Add adjustment plugins')
-        parser.add_argument('-D','--debug',action='store_true',help="Enter the python debugger")
-        args=parser.parse_args()
+
+        parser = argparse.ArgumentParser(description="Adjust network")
+        parser.add_argument("config_file", help="Adjustment definition file")
+        parser.add_argument(
+            "output_file", nargs="?", help="Output file - default is standard output"
+        )
+        parser.add_argument("-r", "--residual_file", help="Residual CSV file")
+        parser.add_argument(
+            "-s", "--output-coordinate-file", help="Output station CSV file"
+        )
+        parser.add_argument(
+            "-v", "--verbose", action="store_true", help="Verbose output"
+        )
+        parser.add_argument(
+            "-c",
+            "--create",
+            action="store_true",
+            help="Create an example adjustment configuration file",
+        )
+        parser.add_argument("-p", "--plugin", help="Add adjustment plugins")
+        parser.add_argument(
+            "-D", "--debug", action="store_true", help="Enter the python debugger"
+        )
+        args = parser.parse_args()
 
         # Crude configuration file reading, parsed to a dictionary
         # Multiple options compiled to '\n' separated string
@@ -1894,47 +2070,58 @@ class Adjustment( object ):
 
         if args.debug:
             import pdb
+
             pdb.set_trace()
-        plugins=plugins or []
+        plugins = plugins or []
         if args.plugin:
-            for pluginname in re.split(r'\W+',args.plugin):
-                if pluginname != '':
+            for pluginname in re.split(r"\W+", args.plugin):
+                if pluginname != "":
                     plugins.extend(Adjustment.getPluginClassesByName(pluginname))
         if software is not None:
-            Adjustment.softwareName=software
+            Adjustment.softwareName = software
         if args.create:
             if os.path.exists(args.config_file):
-                print("Config file "+args.config_file+" already exists - not creating!")
+                print(
+                    "Config file "
+                    + args.config_file
+                    + " already exists - not creating!"
+                )
                 sys.exit()
             import inspect
-            classes=[Adjustment]
+
+            classes = [Adjustment]
             classes.extend(plugins)
-            with open(args.config_file,'w') as cf:
-                spacer=''
+            with open(args.config_file, "w") as cf:
+                spacer = ""
                 for cls in classes:
-                    source=inspect.getfile(cls)
-                    source=os.path.splitext(source)[0]+'.adj'
+                    source = inspect.getfile(cls)
+                    source = os.path.splitext(source)[0] + ".adj"
                     if not os.path.exists(source):
-                        if cls==Adjustment:
+                        if cls == Adjustment:
                             print("Cannot find example configuration file :-(")
                             sys.exit()
                         continue
                     with open(source) as sf:
                         cf.write(spacer)
                         cf.write(sf.read())
-                    spacer="\n"
-            print("Example configuration file "+args.config_file+" created.")
+                    spacer = "\n"
+            print("Example configuration file " + args.config_file + " created.")
             sys.exit()
 
         # Set up and run the adjustment
 
-        adj=Adjustment(plugins=plugins,config_file=args.config_file,output_file=args.output_file,verbose=args.verbose)
+        adj = Adjustment(
+            plugins=plugins,
+            config_file=args.config_file,
+            output_file=args.output_file,
+            verbose=args.verbose,
+        )
         try:
             adj.run()
         except Exception as ex:
-            errmess=ex.message or str(ex) or repr(ex)
-            print("\nError running adjustment:\n"+errmess)
-            
+            errmess = ex.message or str(ex) or repr(ex)
+            print("\nError running adjustment:\n" + errmess)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     Adjustment.main()

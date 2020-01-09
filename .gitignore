@@ -1,9 +1,13 @@
 *.pyc
 .noseids
+.pybuild
+.vscode
 build
 dist
+temp
 linz_adjustment.egg-info
-debian/python-linz*
+debian/.debhelper
+debian/python3-linz*
 debian/debhelper.log
 debian/substvars
 debian/files

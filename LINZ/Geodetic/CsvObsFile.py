@@ -1,33 +1,30 @@
-# Imports to support python 3 compatibility
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import re
 import math
 import datetime as dt
 from .CsvRecord import Reader
 from .Observation import Observation, ObservationValue
 
-approxEarthRadius=6371000.0
+approxEarthRadius = 6371000.0
 
-def _parsedate( datestr ):
+
+def _parsedate(datestr):
     if not datestr:
         return None
-    parts=[int(i) for i in re.findall(r'(\d+)',datestr)]
+    parts = [int(i) for i in re.findall(r"(\d+)", datestr)]
     try:
-        if len(parts) not in (3,5,6):
+        if len(parts) not in (3, 5, 6):
             raise RuntimeError()
-        parts.extend((0,0,0))
-        obsdate=dt.datetime(parts[0],parts[1],parts[2],parts[3],parts[4],parts[5])
+        parts.extend((0, 0, 0))
+        obsdate = dt.datetime(
+            parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]
+        )
     except:
-        raise RuntimeError('Invalid date '+datestr)
+        raise RuntimeError("Invalid date " + datestr)
     return obsdate
 
 
-def read( csvfile, colnames=None, attributes=None ):
-    '''
+def read(csvfile, colnames=None, attributes=None):
+    """
     Reads observations from a data file.  The data file can have columns:
     
        fromstn   Code of instrument station
@@ -55,9 +52,9 @@ def read( csvfile, colnames=None, attributes=None ):
     Each row can contain multiple observations usign the xx_value, 
     xx_error format, or one row entered using the obstype, value, error.
 
-    '''
+    """
 
-    columns='''
+    columns = """
          fromstn tostn date? 
          fromhgt:float? tohgt:float?
          obstype? obsset? 
@@ -68,116 +65,130 @@ def read( csvfile, colnames=None, attributes=None ):
          zd_value:float? zd_error:float?
          az_value:float? az_error:float?
          lv_value:float? lv_error:float?
-         '''
+         """
 
-    attributes=attributes or []
-    if isinstance(attributes,basestring):
-        attributes=[x for x in re.split(r'\W+',attributes) if len(x) > 0]
-    columns=columns+' '+' '.join(attributes)
-    attfuncs={}
+    attributes = attributes or []
+    if isinstance(attributes, str):
+        attributes = [x for x in re.split(r"\W+", attributes) if len(x) > 0]
+    columns = columns + " " + " ".join(attributes)
+    attfuncs = {}
     for a in attributes:
-        a=re.sub(r'[:?].*','',a)
-        attfuncs[a]=eval('lambda x: x.'+a)
+        a = re.sub(r"[:?].*", "", a)
+        attfuncs[a] = eval("lambda x: x." + a)
 
-    csvreader=Reader('observation',columns)
-    csvsrc=csvreader.open(csvfile,colnames)
-    fields=csvsrc.fieldsDefined()
-    valuefuncs=[]
+    csvreader = Reader("observation", columns)
+    csvsrc = csvreader.open(csvfile, colnames)
+    fields = csvsrc.fieldsDefined()
+    valuefuncs = []
     for collist in (
-        'value error obstype',
-        'ha_value ha_error',
-        'hd_value hd_error',
-        'sd_value sd_error',
-        'zd_value zd_error',
-        'az_value az_error',
-        'lv_value lv_error'):
-        names=collist.split()
+        "value error obstype",
+        "ha_value ha_error",
+        "hd_value hd_error",
+        "sd_value sd_error",
+        "zd_value zd_error",
+        "az_value az_error",
+        "lv_value lv_error",
+    ):
+        names = collist.split()
         if names[0] in fields:
             for needed in names[1:]:
                 if needed not in fields:
-                    raise RuntimeError("Cannot have column {0} without {1} in {2}"
-                                       .format(names[0],needed,csvsrc.filename()))
-            if names[0][2] == '_':
-                obstype="'"+names[0][:2].upper()+"'"
+                    raise RuntimeError(
+                        "Cannot have column {0} without {1} in {2}".format(
+                            names[0], needed, csvsrc.filename()
+                        )
+                    )
+            if names[0][2] == "_":
+                obstype = "'" + names[0][:2].upper() + "'"
             else:
-                obstype="x.obstype"
-            funcstr="lambda x: ("+obstype+", x."+names[0]+", x."+names[1]+")"
+                obstype = "x.obstype"
+            funcstr = (
+                "lambda x: (" + obstype + ", x." + names[0] + ", x." + names[1] + ")"
+            )
             valuefuncs.append(eval(funcstr))
 
-    haobs=None
-    lastfrom=None
-    lastset=None
+    haobs = None
+    lastfrom = None
+    lastset = None
 
-    recordno=0
-    filename=csvsrc.filename()
+    recordno = 0
+    filename = csvsrc.filename()
 
     for row in csvsrc.records():
         # Send pending HA observations
         if haobs is not None and (row.fromstn != lastfrom or row.obsset != lastset):
-            yield(haobs)
-            haobs=None
-        lastfrom=row.fromstn
-        lastset=row.obsset
+            yield (haobs)
+            haobs = None
+        lastfrom = row.fromstn
+        lastset = row.obsset
         recordno += 1
-        attributes={'source': filename+':'+str(recordno)}
-        for k,f in attfuncs.iteritems():
-            attributes[k]=f(row)
+        attributes = {"source": filename + ":" + str(recordno)}
+        for k, f in attfuncs.items():
+            attributes[k] = f(row)
 
-
-        obsdate=_parsedate(row.date)
+        obsdate = _parsedate(row.date)
 
         for f in valuefuncs:
-            obstype,obsvalue,obserror=f(row)
+            obstype, obsvalue, obserror = f(row)
             if obsvalue is None:
                 continue
-            value=ObservationValue(row.fromstn,row.tostn,obsvalue,obserror,
-                                   row.fromhgt or 0.0, row.tohgt or 0.0,
-                                  attributes)
-            if obstype == 'HA':
+            value = ObservationValue(
+                row.fromstn,
+                row.tostn,
+                obsvalue,
+                obserror,
+                row.fromhgt or 0.0,
+                row.tohgt or 0.0,
+                attributes,
+            )
+            if obstype == "HA":
                 if haobs is None:
-                    haobs=Observation('HA',obsdate=obsdate)
+                    haobs = Observation("HA", obsdate=obsdate)
                 haobs.addObservation(value)
             else:
-                yield Observation(obstype,obsdate=obsdate).addObservation(value)
+                yield Observation(obstype, obsdate=obsdate).addObservation(value)
                 continue
 
     if haobs is not None:
         yield haobs
 
-def readConvertToHorDist( csvfile, colnames=None, attributes=None ):
+
+def readConvertToHorDist(csvfile, colnames=None, attributes=None):
     global approxEarthRadius
-    savedsd=None
-    lastsource=None
-    for obs in read( csvfile, colnames, attributes ):
-        type=obs.obstype.code
-        source=obs.obsvalues[0].attributes.get('source')
+    savedsd = None
+    lastsource = None
+    for obs in read(csvfile, colnames, attributes):
+        type = obs.obstype.code
+        source = obs.obsvalues[0].attributes.get("source")
         if source != lastsource:
-            lastsource=source
+            lastsource = source
             if savedsd is not None:
                 yield savedsd
-                savedsd=None
-        if type == 'SD' and savedsd is None:
+                savedsd = None
+        if type == "SD" and savedsd is None:
             savedsd = obs
-        elif type in ('ZD','LV') and savedsd is not None:
-            sdist=savedsd.obsvalues[0].value
-            hdiff=obs.obsvalues[0].value
-            if type == 'ZD':
-                zdist=math.radians(hdiff)
-                subtend=sdist*math.sin(zdist)/(2*approxEarthRadius)
-                hdiff=sdist*math.cos(zdist+subtend)
-                hdifferr=math.hypot(math.radians(obs.obsvalues[0].stderr)*sdist,
-                                    savedsd.obsvalues[0].stderr*subtend)
-                obs.obsvalues[0].value=hdiff
-                obs.obsvalues[0].stderr=hdifferr
-                obs.obstype=Observation.ObservationTypes['LV']
+        elif type in ("ZD", "LV") and savedsd is not None:
+            sdist = savedsd.obsvalues[0].value
+            hdiff = obs.obsvalues[0].value
+            if type == "ZD":
+                zdist = math.radians(hdiff)
+                subtend = sdist * math.sin(zdist) / (2 * approxEarthRadius)
+                hdiff = sdist * math.cos(zdist + subtend)
+                hdifferr = math.hypot(
+                    math.radians(obs.obsvalues[0].stderr) * sdist,
+                    savedsd.obsvalues[0].stderr * subtend,
+                )
+                obs.obsvalues[0].value = hdiff
+                obs.obsvalues[0].stderr = hdifferr
+                obs.obstype = Observation.ObservationTypes["LV"]
             yield obs
-            hdist=math.sqrt(sdist*sdist-hdiff*hdiff)
-            subtend=hdist/(2*approxEarthRadius)
-            hdist += hdiff*subtend
-            savedsd.obsvalues[0].value=hdist
-            savedsd.obstype=Observation.ObservationTypes['HD']
+            hdist = math.sqrt(sdist * sdist - hdiff * hdiff)
+            subtend = hdist / (2 * approxEarthRadius)
+            hdist += hdiff * subtend
+            savedsd.obsvalues[0].value = hdist
+            savedsd.obstype = Observation.ObservationTypes["HD"]
             yield savedsd
-            savedsd=None
+            savedsd = None
         else:
             yield obs
     if savedsd is not None:

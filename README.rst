@@ -122,4 +122,9 @@ Station locator plugin
 
 Adds functionality to calculate the coordinates of stations not defined in the coordinate file.
 
+Build notes
+===========
 
+NOTE: Currently debian package fails on testing as doesn't find LINZ.Geodetic.Ellipsoid.  Build with
+
+DEB_BUILD_OPTIONS=nocheck
