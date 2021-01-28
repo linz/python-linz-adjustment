@@ -707,7 +707,7 @@ class Adjustment(object):
                     self.setConfig(item, value)
                 except Exception as ex:
                     if write is not None:
-                        write(ex.message)
+                        write(str(ex))
                         write("\n")
                         nerrors += 1
                     else:
@@ -2119,7 +2119,7 @@ class Adjustment(object):
         try:
             adj.run()
         except Exception as ex:
-            errmess = ex.message or str(ex) or repr(ex)
+            errmess = str(ex) or repr(ex)
             print("\nError running adjustment:\n" + errmess)
 
 
