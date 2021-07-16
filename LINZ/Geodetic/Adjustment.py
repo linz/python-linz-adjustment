@@ -581,7 +581,7 @@ class Adjustment(object):
                 hfloat = float(hfs)
                 vfloat = float(vfs)
                 self.options.floatStations.extend(
-                    (((hfloat, vfloat), v) for v in self._splitStationList(value))
+                    (((hfloat, vfloat), v) for v in self._splitStationList(slist))
                 )
             except:
                 raise RuntimeError("Invalid float option: " + value)
